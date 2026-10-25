@@ -1,0 +1,2594 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>TODO</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 見出し（ロゴ・題・説明）/ 操作パネル（進捗・追加・表示切替・絞り込み・タグ）/ 本体（期限順タイムライン ⇄ 月カレンダー）。最大1080pxの一段組 */
+/* 白を基調にした単一テーマ。端末がダークモードでも白のまま表示する */
+:root{
+  color-scheme:light;
+  --page:#f7f8f8;
+  --surface:#ffffff;
+  --wash:#f4f6f5;
+  --sunken:#eaedec;
+  --ink:#1d2422;
+  --ink-2:#4b5551;
+  --ink-3:#77817d;
+  --line:#e3e7e5;
+  --line-2:#cfd6d3;
+  --accent:#13684d;           /* 深緑：ロゴ・主ボタン・進捗・今日の枠 */
+  --accent-hover:#0e5840;
+  --accent-soft:#e5f1eb;
+  --on-accent:#ffffff;
+  --red:#c42f2a; --red-soft:#fdeceb; --red-line:#f1b5b1; --red-bar:#d8433d;                         /* 期限切れ */
+  --yellow-bg:#fff7d4; --yellow-line:#efcf5a; --yellow-bar:#e3b400; --yellow-strong:#ffd84d;         /* 今日まで */
+  --orange:#ad5a06; --orange-soft:#fdf0de; --orange-line:#efc38c; --orange-mid:#e8890c;              /* 期限間近・優先度 中 */
+  --green:#277a50; --green-soft:#e2f3e9;
+  --blue:#2a5fb4; --blue-soft:#e7eefb;
+  --purple:#6a45bf; --purple-soft:#efe9fb;
+  --teal:#0e7480; --teal-soft:#e0f2f3;
+  --pink:#b5306c; --pink-soft:#fbe6ef;
+  --gray:#58626d; --gray-soft:#edf0f2;
+  --shadow-xs:0 1px 2px rgb(20 40 32 / .05);
+  --shadow:0 1px 2px rgb(20 40 32 / .05),0 6px 20px rgb(20 40 32 / .06);
+  --shadow-lg:0 2px 6px rgb(20 40 32 / .08),0 24px 60px rgb(20 40 32 / .18);
+  --font-body:"Zen Kaku Gothic New","Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic UI","Meiryo",system-ui,sans-serif;
+  --font-mono:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+  --badge-w:76px;
+}
+*,*::before,*::after{box-sizing:border-box}
+body{background:var(--page);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.6;-webkit-text-size-adjust:100%}
+h1,h2,h3{text-wrap:balance}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+.spacer{flex:1}
+.hint{margin:0;font-size:13px;color:var(--ink-3)}
+.err{margin:0;font-size:13px;color:var(--red)}
+.warn{margin:0;padding:8px 12px;border-radius:8px;font-size:13px;color:var(--orange);background:var(--orange-soft)}
+
+.app{max-width:1080px;margin:0 auto;padding-block:32px 112px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:22px}
+
+/* 見出し */
+.masthead{display:flex;align-items:center;gap:16px}
+.logo{display:grid;place-items:center;flex:none;width:56px;height:56px;border-radius:12px;background:var(--accent);box-shadow:0 2px 8px rgb(19 104 77 / .28)}
+.logo svg{width:30px;height:30px;fill:none;stroke:var(--on-accent);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+.eyebrow{margin:0;font-size:11.5px;font-weight:700;letter-spacing:.18em;color:var(--accent)}
+.masthead h1{margin:0;font-size:30px;font-weight:700;line-height:1.15;letter-spacing:.03em}
+.lede{margin:4px 0 0;font-size:14px;color:var(--ink-2)}
+
+/* ボタン */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:7px 16px;border:1px solid var(--line-2);border-radius:10px;background:var(--surface);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap;transition:background-color .12s,border-color .12s}
+.btn:hover{background:var(--wash)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:700;box-shadow:0 1px 3px rgb(19 104 77 / .3)}
+.btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+.btn.danger{background:var(--red-bar);border-color:var(--red-bar);color:#ffffff;font-weight:700}
+.btn.danger-text{background:transparent;border-color:transparent;color:var(--red)}
+.btn.danger-text:hover{background:var(--red-soft)}
+.btn.ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+.btn.ghost:hover{background:var(--wash);color:var(--ink)}
+.btn.small{min-height:32px;padding:4px 12px;font-size:13px}
+.link-btn{padding:0;border:0;background:none;color:var(--accent);font-size:13px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.icon-btn{display:grid;place-items:center;width:32px;height:32px;flex:none;border:0;border-radius:8px;background:transparent;color:var(--ink-3);cursor:pointer}
+.icon-btn:hover{background:var(--wash);color:var(--ink)}
+.icon-btn.del:hover{background:var(--red-soft);color:var(--red)}
+.icon-btn svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+
+/* 操作パネル */
+.panel{display:grid;gap:14px;padding:20px 22px 16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+.panel-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.prog-text{margin:0;font-size:15px;font-weight:700;color:var(--ink)}
+.prog-text b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
+.prog-pct{margin-left:6px;font-size:13px;font-weight:500;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.panel-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:flex-end;gap:8px;margin-left:auto}
+.progress{height:6px;border-radius:999px;background:var(--sunken);overflow:hidden}
+.progress i{display:block;height:100%;width:0;border-radius:inherit;background:var(--accent);transition:width .3s ease}
+.row-switch{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:10px}
+.seg{display:inline-flex;flex-wrap:wrap;gap:2px;padding:3px;border-radius:10px;background:var(--sunken)}
+.seg button{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 14px;border:0;border-radius:8px;background:transparent;color:var(--ink-2);font-size:14px;font-weight:500;cursor:pointer;white-space:nowrap}
+.seg button:hover{color:var(--ink)}
+.seg button[aria-pressed="true"]{background:var(--surface);color:var(--ink);font-weight:700;box-shadow:0 1px 2px rgb(20 40 32 / .16)}
+.filters{display:grid;gap:10px;padding:12px 14px;border:1px solid var(--line);border-radius:12px;background:var(--wash)}
+.frow{display:flex;flex-wrap:wrap;align-items:center;gap:10px 28px}
+.fgroup{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.flabel{font-size:13px;font-weight:700;color:var(--ink-2);white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red-bar)}
+.dot.p-medium{background:var(--orange-mid)}
+.dot.p-low{background:var(--green)}
+.tags-row{align-items:flex-start;flex-wrap:nowrap;gap:10px 14px}
+.tags-row .flabel{padding-top:4px}
+.tag-filter{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1}
+.tchip{display:inline-flex;align-items:center;gap:6px;min-height:28px;max-width:100%;padding:2px 11px;border:1px solid transparent;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer}
+.tchip .tn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tchip .tcount{font-size:11.5px;opacity:.72;font-variant-numeric:tabular-nums}
+.tchip:hover{border-color:currentColor}
+.tchip[aria-pressed="true"]{border-color:currentColor;box-shadow:inset 0 0 0 1px currentColor;font-weight:700}
+.tag-empty{padding-top:4px;font-size:13px;color:var(--ink-3)}
+.save-note{margin:0;text-align:right;font-size:12.5px;color:var(--ink-3)}
+.save-note.is-warn{color:var(--red)}
+.save-pill{display:inline-flex;align-items:center;gap:10px;min-width:0;max-width:100%;min-height:36px;padding:4px 14px;border:1px solid var(--line-2);border-radius:999px;background:var(--surface);font-size:12.5px;color:var(--ink-2)}
+.save-pill .sp-dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.save-pill .sp-sep{flex:none;width:1px;height:14px;background:var(--line-2)}
+.save-pill .sp-file{min-width:0;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14em}
+.save-pill .sp-time{white-space:nowrap;font-variant-numeric:tabular-nums}
+.save-pill[data-state="wait"] .sp-dot{background:var(--yellow-bar)}
+.save-pill[data-state="error"] .sp-dot{background:var(--red-bar)}
+
+/* その他メニュー */
+.menu-wrap{position:relative}
+.menu{position:absolute;right:0;top:calc(100% + 6px);z-index:30;display:grid;min-width:250px;padding:6px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-lg)}
+.menu button{display:flex;align-items:center;gap:10px;width:100%;padding:9px 12px;border:0;border-radius:8px;background:transparent;color:var(--ink);text-align:left;font-size:14px;cursor:pointer}
+.menu button:hover,.menu button:focus-visible{background:var(--wash)}
+.menu button:disabled{color:var(--ink-3);cursor:not-allowed;background:transparent}
+.menu button.danger{color:var(--red)}
+.menu hr{margin:4px 6px;border:0;border-top:1px solid var(--line)}
+.menu svg{width:16px;height:16px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+
+/* タイムライン */
+.timeline{display:grid;gap:24px}
+.tl-month{display:grid;gap:12px}
+.tl-mlabel{margin:0;width:max-content;min-width:var(--badge-w);text-align:center;font-size:13.5px;font-weight:700;color:var(--ink-3);letter-spacing:.04em}
+.tl-list{position:relative;display:grid;gap:14px;margin:0;padding:0;list-style:none}
+.tl-list::before{content:"";position:absolute;top:12px;bottom:12px;left:calc(var(--badge-w) / 2 - 1px);width:2px;border-radius:1px;background:var(--line)}
+.tl-row{display:grid;grid-template-columns:var(--badge-w) minmax(0,1fr);gap:0 20px;align-items:start}
+.tl-badge{position:relative;z-index:1;display:grid;justify-items:center;margin-top:4px;padding:7px 4px 6px;border:1.5px solid var(--line-2);border-radius:10px;background:var(--surface)}
+.tb-k{display:inline-flex;align-items:center;gap:2px;font-size:10.5px;font-weight:700;line-height:1.3;color:var(--red)}
+.tb-k svg{width:10px;height:10px;fill:currentColor;stroke:none}
+.tl-badge.is-target .tb-k{color:var(--accent)}
+.tl-badge.is-target .tb-k svg{fill:none;stroke:currentColor;stroke-width:2.4}
+.tb-d{font-size:17px;font-weight:700;line-height:1.3;font-variant-numeric:tabular-nums}
+.tb-w{font-size:11px;line-height:1.3;color:var(--ink-3)}
+.tl-badge.st-overdue{border-color:var(--red-line);background:var(--red-soft)}
+.tl-badge.st-overdue .tb-d{color:var(--red)}
+.tl-badge.st-today{border-color:var(--yellow-line);background:var(--yellow-bg)}
+.tl-badge.st-soon{border-color:var(--orange-line)}
+.tl-badge.st-done{opacity:.55}
+.tl-badge.is-unset .tb-d{color:var(--ink-3)}
+
+/* タスクカード */
+.card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:0 14px;padding:16px 14px 12px 18px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-xs)}
+.card.is-over{border-color:var(--red-line);background:var(--red-soft);box-shadow:inset 4px 0 0 var(--red-bar)}
+.card.is-today{border-color:var(--yellow-line);background:var(--yellow-bg);box-shadow:inset 4px 0 0 var(--yellow-bar)}
+.card.is-done{background:#fafbfb}
+.check{position:relative;display:block;width:24px;height:24px;margin-top:2px;cursor:pointer}
+.check input{position:absolute;inset:0;margin:0;opacity:0;cursor:pointer}
+.check .box{display:grid;place-items:center;width:24px;height:24px;border:1.5px solid var(--line-2);border-radius:6px;background:var(--surface);transition:background-color .12s,border-color .12s}
+.check .box svg{width:15px;height:15px;fill:none;stroke:var(--on-accent);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round;opacity:0}
+.check:hover .box{border-color:var(--accent)}
+.check input:checked + .box{background:var(--accent);border-color:var(--accent)}
+.check input:checked + .box svg{opacity:1}
+.check input:focus-visible + .box{outline:2px solid var(--accent);outline-offset:2px}
+.card-main{min-width:0}
+.card-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-height:28px}
+.card-title{max-width:100%;margin:0;padding:0;border:0;background:none;text-align:left;font-size:16.5px;font-weight:700;line-height:1.5;color:var(--ink);cursor:pointer;overflow-wrap:anywhere}
+.card-title:hover{text-decoration:underline;text-decoration-color:var(--ink-3);text-underline-offset:4px}
+.pri{display:inline-grid;place-items:center;min-width:24px;height:22px;padding:0 6px;border-radius:6px;font-size:12px;font-weight:700;color:var(--red);background:var(--red-soft)}
+.pri.p-medium{color:var(--orange);background:var(--orange-soft)}
+.pri.p-low{color:var(--green);background:var(--green-soft)}
+.card.is-over .pri,.card.is-today .pri{background:rgb(255 255 255 / .75)}
+.tag{display:inline-flex;align-items:center;gap:1px;max-width:100%;min-height:24px;padding:0 3px 0 10px;border-radius:999px;font-size:12.5px;font-weight:500}
+.tag .tn{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tag button{display:grid;place-items:center;flex:none;width:20px;height:20px;border:0;border-radius:50%;background:transparent;color:inherit;font-size:14px;line-height:1;opacity:.55;cursor:pointer}
+.tag button:hover{opacity:1;background:rgb(0 0 0 / .07)}
+.tc-0{color:var(--purple);background:var(--purple-soft)}
+.tc-1{color:var(--orange);background:var(--orange-soft)}
+.tc-2{color:var(--red);background:var(--red-soft)}
+.tc-3{color:var(--gray);background:var(--gray-soft)}
+.tc-4{color:var(--blue);background:var(--blue-soft)}
+.tc-5{color:var(--green);background:var(--green-soft)}
+.tc-6{color:var(--teal);background:var(--teal-soft)}
+.tc-7{color:var(--pink);background:var(--pink-soft)}
+.card.is-over .tag,.card.is-today .tag{box-shadow:inset 0 0 0 1px rgb(255 255 255 / .9)}
+.card-dates{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.dchip{display:inline-flex;align-items:center;gap:7px;min-height:28px;padding:2px 10px;border:1px solid var(--line-2);border-radius:8px;background:var(--surface);font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+.dchip.due{border-color:var(--red-line)}
+.dc-ic{display:inline-grid;color:var(--red)}
+.dchip.target .dc-ic{color:var(--ink-3)}
+.dc-ic svg{width:11px;height:11px}
+.dchip.due .dc-ic svg{fill:currentColor}
+.dchip.target .dc-ic svg{fill:none;stroke:currentColor;stroke-width:2.4}
+.dc-k{font-weight:700}
+.dc-v{color:var(--ink);font-variant-numeric:tabular-nums}
+.dchip.unset{border-color:transparent;background:transparent;color:var(--ink-3)}
+.dchip.unset .dc-v{color:var(--ink-3)}
+.rel{margin-left:4px;font-size:12px;font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.rel.overdue{color:var(--red)}
+.rel.soon{color:var(--orange)}
+.rel.today{padding:0 8px;border-radius:999px;background:var(--yellow-strong);color:var(--ink)}
+.card-extra{margin-top:8px}
+.repeat-chip{display:inline-flex;align-items:center;gap:5px;padding:1px 9px;border-radius:6px;background:var(--blue-soft);color:var(--blue);font-size:12px;font-weight:700}
+.repeat-chip svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.card > .memo{grid-column:2 / -1}
+.memo{display:block;width:100%;min-height:2.3em;max-height:16em;margin-top:8px;padding:6px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);font-size:14px;line-height:1.6;resize:vertical;field-sizing:content}
+.memo::placeholder{color:var(--ink-3)}
+.memo.has-text{background:rgb(20 40 32 / .045)}
+.memo:hover{border-color:var(--line)}
+.memo:focus{border-color:var(--accent);background:var(--surface);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+.card-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
+.done-pill{padding:1px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;white-space:nowrap}
+.card-acts{display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.card:hover .card-acts,.card:focus-within .card-acts{opacity:1}
+@media (hover:none){.card-acts{opacity:1}}
+.card.is-done .card-title{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--ink-3)}
+.card.is-done .pri,.card.is-done .tag,.card.is-done .card-dates,.card.is-done .card-extra{opacity:.6}
+
+/* カレンダー */
+.cal-card,.day-panel{padding:18px 18px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
+.cal-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:14px}
+.cal-top h2{margin:0;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
+.basis-pill{padding:2px 11px;border-radius:999px;background:var(--red-soft);color:var(--red);font-size:12.5px;font-weight:700}
+.basis-pill.is-target{background:var(--accent-soft);color:var(--accent)}
+.cal-nav{display:flex;gap:6px;margin-left:auto}
+.cal-nav .btn{min-height:36px;padding:4px 14px}
+.cal-week,.cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.cal-week{margin-bottom:6px}
+.cal-week span{text-align:center;font-size:12.5px;font-weight:700;color:var(--ink-2)}
+.cal-week .sun{color:var(--red)}
+.cal-week .sat{color:var(--blue)}
+.cal-cell{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:122px;padding:6px 6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--surface);cursor:pointer}
+.cal-cell:hover{border-color:var(--line-2)}
+.cal-cell.is-out{background:var(--wash)}
+.cal-cell.is-selected{background:#f1f8f4}
+.cal-cell.is-today{padding:5px 5px 7px;border:2px solid var(--accent)}
+.cal-top-row{display:flex;align-items:center;gap:4px;min-width:0}
+.cal-date{display:grid;place-items:center;flex:none;min-width:24px;height:24px;padding:0 4px;border:0;border-radius:12px;background:transparent;font-size:13px;font-weight:500;color:var(--ink);font-variant-numeric:tabular-nums;cursor:pointer}
+.cal-cell.is-sun .cal-date,.cal-cell.is-hol .cal-date{color:var(--red)}
+.cal-cell.is-sat .cal-date{color:var(--blue)}
+.cal-cell.is-out .cal-date{opacity:.55}
+.cal-cell.is-today .cal-date{font-weight:700}
+.cal-hol{min-width:0;font-size:10.5px;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cal-pills{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cal-pill{display:block;width:100%;min-width:0;padding:1px 7px;border:0;border-radius:5px;background:var(--wash);color:var(--ink);font-size:12px;line-height:1.7;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.cal-pill:hover{outline:1px solid var(--ink-3);outline-offset:-1px}
+.cal-pill.u-overdue{background:var(--red-soft);color:var(--red);font-weight:500}
+.cal-pill.u-today{background:var(--yellow-strong);color:var(--ink);font-weight:700}
+.cal-pill.u-soon{background:var(--orange-soft);color:var(--orange)}
+.cal-pill.is-done{background:transparent;color:var(--ink-3);text-decoration:line-through}
+.cal-more{padding-left:7px;font-size:11.5px;color:var(--ink-3)}
+.cal-legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-top:14px;font-size:12.5px;color:var(--ink-2)}
+.cal-legend span{display:inline-flex;align-items:center;gap:6px}
+.cal-legend i{width:12px;height:12px;border-radius:3px;background:var(--wash);border:1px solid var(--line)}
+.cal-legend .lg-soon{background:var(--orange-soft);border-color:var(--orange-line)}
+.cal-legend .lg-today{background:var(--yellow-strong);border-color:var(--yellow-bar)}
+.cal-legend .lg-over{background:var(--red-soft);border-color:var(--red-line)}
+.cal-undated{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;margin:12px 0 0;font-size:13px;color:var(--ink-2)}
+.day-head{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;margin-bottom:14px}
+.day-head h2{margin:0;font-size:17px;font-weight:700}
+.day-hol{font-size:12.5px;font-weight:700;color:var(--red)}
+.count{font-size:13px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.day-list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+
+/* 読み込み中・空の状態 */
+.skel{display:grid;gap:14px}
+.skel div{height:104px;border-radius:12px;background:var(--surface);border:1px solid var(--line)}
+.empty-card{display:grid;justify-items:center;gap:10px;padding:44px 20px 46px;border:1px dashed var(--line-2);border-radius:16px;background:var(--surface);text-align:center}
+.empty-card h2{margin:4px 0 0;font-size:18px;font-weight:700}
+.empty-card p{margin:0;max-width:36em;color:var(--ink-2)}
+.empty-row{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:6px}
+
+/* ダイアログ共通 */
+dialog{width:min(760px,calc(100vw - 24px));max-height:calc(100dvh - 32px);padding:0;border:0;border-radius:16px;background:var(--surface);color:var(--ink);box-shadow:var(--shadow-lg)}
+dialog.narrow{width:min(560px,calc(100vw - 24px))}
+dialog::backdrop{background:rgb(16 24 20 / .45)}
+.dlg{display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}
+.dlg-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 4px}
+.dlg-head h2{flex:1;margin:0;font-size:18px;font-weight:700}
+.dlg-head .sub{margin:6px 0 0;font-size:13px;font-weight:400;color:var(--ink-2)}
+.dlg-body{display:grid;gap:14px;padding:14px 22px 18px;overflow-y:auto;min-height:0}
+.dlg-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 22px;border-top:1px solid var(--line)}
+.inp{width:100%;min-width:0;min-height:44px;padding:9px 13px;border:1px solid var(--line-2);border-radius:10px;background:#fcfdfd;color:var(--ink);font-size:16px}
+.inp::placeholder{color:var(--ink-3)}
+.inp:focus{border-color:var(--accent);background:var(--surface);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
+select.inp{padding-right:8px;cursor:pointer}
+select.inp:disabled{opacity:.5;cursor:not-allowed}
+textarea.inp{min-height:88px;resize:vertical;line-height:1.6}
+textarea.code{font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
+.field{display:grid;gap:6px;min-width:0}
+.field > label{font-size:13px;font-weight:700;color:var(--ink-2)}
+.f-row3{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,160px);gap:14px}
+.more-body{display:grid;gap:14px;padding:14px 0;border-top:1px dashed var(--line-2);border-bottom:1px dashed var(--line-2)}
+.repeat-row{display:flex;flex-wrap:wrap;align-items:flex-end;gap:10px 18px}
+.repeat-row .field{width:140px}
+.repeat-row .hint{padding-bottom:11px}
+.cbx{display:inline-flex;align-items:center;gap:8px;min-height:44px;font-size:14.5px;font-weight:500;cursor:pointer}
+.cbx input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.tag-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
+.tag-row .inp{flex:1 1 200px;width:auto}
+.f-tags{display:flex;flex-wrap:wrap;gap:6px}
+.stamp{margin:0;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.kbd-hint{font-size:12px;color:var(--ink-3)}
+.x{display:grid;place-items:center;width:34px;height:34px;margin:-4px -6px 0 0;border:0;border-radius:8px;background:transparent;color:var(--ink-3);cursor:pointer}
+.x:hover{background:var(--wash);color:var(--ink)}
+.x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+
+/* インポート */
+.drop{display:grid;justify-items:center;gap:8px;padding:28px 16px;border:1.5px dashed var(--line-2);border-radius:12px;background:var(--wash);text-align:center}
+.drop.is-over{border-color:var(--accent);background:var(--accent-soft)}
+.drop-t{margin:0;font-weight:700}
+.paste summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--accent)}
+.paste[open] summary{margin-bottom:10px}
+.paste .btn{margin-top:8px}
+.stack{display:grid;gap:14px}
+.imp-file{margin:0;font-family:var(--font-mono);font-size:12.5px;color:var(--ink-3);overflow-wrap:anywhere}
+.imp-sum{margin:0;font-weight:700}
+.imp-preview{list-style:none;margin:0;padding:4px 12px;border:1px solid var(--line);border-radius:10px;background:var(--wash)}
+.imp-preview li{display:flex;align-items:center;gap:10px;min-width:0;padding:6px 0;font-size:14px}
+.imp-preview li + li{border-top:1px solid var(--line)}
+.imp-preview .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.imp-preview .d{font-size:12px;color:var(--ink-3);white-space:nowrap;font-variant-numeric:tabular-nums}
+.radio-list{display:grid;gap:8px}
+.radio{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer}
+.radio:has(input:checked){border-color:var(--accent);background:var(--accent-soft)}
+.radio input{margin:4px 0 0;accent-color:var(--accent)}
+.radio b{display:block;font-size:14px}
+.radio small{display:block;font-size:12.5px;color:var(--ink-2)}
+fieldset.field{margin:0;padding:0;border:0}
+fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:700;color:var(--ink-2)}
+
+/* ゴミ箱 */
+.trash-list{list-style:none;margin:0;padding:0;border:1px solid var(--line);border-radius:12px}
+.trash-list li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 10px 10px 14px}
+.trash-list li + li{border-top:1px solid var(--line)}
+.tr-main{flex:1 1 14em;min-width:0}
+.tr-title{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:700}
+.tr-meta{display:block;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
+.tr-acts{display:flex;gap:6px;margin-left:auto}
+
+/* トースト */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));z-index:40;display:flex;align-items:center;gap:14px;width:max-content;max-width:calc(100vw - 32px);padding:10px 10px 10px 16px;border-radius:10px;background:var(--ink);color:var(--surface);box-shadow:var(--shadow-lg);font-size:14px;transform:translate(-50%,0);transition:transform .18s ease,opacity .18s ease}
+.toast.is-hiding{opacity:0;transform:translate(-50%,8px)}
+.toast span{min-width:0;overflow-wrap:anywhere}
+.toast button{flex:none;padding:4px 12px;border:1px solid currentColor;border-radius:6px;background:transparent;color:var(--surface);font-size:13px;font-weight:700;cursor:pointer}
+
+@media (max-width:760px){
+  :root{--badge-w:58px}
+  .tl-row{gap:0 12px}
+  .tb-d{font-size:15px}
+  .card{grid-template-columns:auto minmax(0,1fr);gap:0 12px;padding:14px 12px 10px 14px}
+  .card-side{order:2;grid-column:1 / -1;flex-direction:row;justify-content:flex-end;align-items:center;margin-top:4px}
+  .card-side .done-pill{margin-right:auto}
+  .f-row3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+  .f-row3 .field:last-child{grid-column:1 / -1}
+  .tags-row{flex-wrap:wrap}
+}
+@media (max-width:640px){
+  .masthead h1{font-size:26px}
+  .logo{width:48px;height:48px}
+  .panel{padding:16px 14px 14px}
+  .panel-actions{margin-left:0;width:100%;justify-content:flex-start}
+  .row-switch .seg{width:100%}
+  .row-switch .seg button{flex:1;justify-content:center}
+  .cal-card,.day-panel{padding:14px 10px 12px}
+  .cal-week,.cal-grid{gap:3px}
+  .cal-cell{min-height:64px;padding:3px 3px 5px;gap:3px;border-radius:7px}
+  .cal-cell.is-today{padding:2px 2px 4px}
+  .cal-date{min-width:20px;height:20px;font-size:12px}
+  .cal-hol{display:none}
+  .cal-pills{gap:2px}
+  .cal-pill{height:5px;padding:0;border-radius:3px;font-size:0;line-height:0;background:var(--line-2)}
+  .cal-pill.u-overdue{background:var(--red-bar)}
+  .cal-pill.u-today{background:var(--yellow-bar)}
+  .cal-pill.u-soon{background:var(--orange-mid)}
+  .cal-pill.is-done{background:var(--line);text-decoration:none}
+  .cal-more{padding-left:0;font-size:10px;line-height:1.2}
+  .cal-nav{margin-left:0}
+  .f-row3{grid-template-columns:1fr}
+  .f-row3 .field:last-child{grid-column:auto}
+  .dlg-head{padding:18px 16px 4px}
+  .dlg-body{padding:12px 16px 16px}
+  .dlg-foot{padding:12px 16px}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{transition:none!important;animation:none!important}
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="masthead">
+    <div class="logo" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></div>
+    <div>
+      <p class="eyebrow">TASK TIMELINE</p>
+      <h1>TODO</h1>
+      <p class="lede">期限順タイムライン／カレンダーでタスクを管理・追加できます</p>
+    </div>
+  </header>
+
+  <section class="panel" id="panel" aria-label="進捗と表示の切り替え">
+    <div class="panel-top">
+      <p class="prog-text"><b id="prog-num">– / –</b> 完了<span class="prog-pct" id="prog-pct"></span></p>
+      <div class="panel-actions">
+        <span class="save-pill" id="save-pill" hidden></span>
+        <button type="button" class="btn primary" id="btn-add" disabled>＋ タスク追加</button>
+        <div class="menu-wrap">
+          <button type="button" class="btn" id="btn-more" aria-haspopup="menu" aria-expanded="false" aria-controls="more-menu" disabled>··· その他</button>
+          <div class="menu" id="more-menu" role="menu" aria-label="その他の操作" hidden>
+            <button type="button" role="menuitem" data-cmd="export"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 13V3M6 7l4-4 4 4M4 16h12"/></svg>JSONをエクスポート</button>
+            <button type="button" role="menuitem" data-cmd="import"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3v10M6 9l4 4 4-4M4 16h12"/></svg>JSONをインポート</button>
+            <button type="button" role="menuitem" data-cmd="pc-connect" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="9.5" rx="1.5"/><path d="M7 17h6M10 13.5V17"/></svg>PCファイルに自動保存…</button>
+            <button type="button" role="menuitem" data-cmd="pc-disconnect" hidden><svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="4" width="14" height="9.5" rx="1.5"/><path d="M7 17h6M10 13.5V17M7.5 6.5l5 5M12.5 6.5l-5 5"/></svg>PCファイルへの自動保存を停止</button>
+            <hr>
+            <button type="button" role="menuitem" data-cmd="trash"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M5.8 6l.8 10h6.8l.8-10M8.5 9v4.5M11.5 9v4.5"/></svg><span id="trash-label">ゴミ箱</span></button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="progress" aria-hidden="true"><i id="prog-bar"></i></div>
+    <div class="row-switch">
+      <div class="seg" role="group" aria-label="表示方法">
+        <button type="button" data-layout="list" aria-pressed="true">リスト</button>
+        <button type="button" data-layout="calendar" aria-pressed="false">カレンダー</button>
+      </div>
+      <div class="seg" role="group" aria-label="完了状態">
+        <button type="button" data-status="all" aria-pressed="true">すべて</button>
+        <button type="button" data-status="open" aria-pressed="false">未完了</button>
+        <button type="button" data-status="done" aria-pressed="false">完了</button>
+      </div>
+    </div>
+    <div class="filters">
+      <div class="frow">
+        <div class="fgroup">
+          <span class="flabel" id="basis-label">並び替え</span>
+          <div class="seg" role="group" aria-labelledby="basis-label">
+            <button type="button" data-basis="due" aria-pressed="true">締め切り日</button>
+            <button type="button" data-basis="target" aria-pressed="false">完了目標日</button>
+          </div>
+        </div>
+        <div class="fgroup">
+          <span class="flabel" id="pri-label">優先度</span>
+          <div class="seg" role="group" aria-labelledby="pri-label">
+            <button type="button" data-pri="" aria-pressed="true">すべて</button>
+            <button type="button" data-pri="high" aria-pressed="false"><i class="dot" aria-hidden="true"></i>高</button>
+            <button type="button" data-pri="medium" aria-pressed="false"><i class="dot p-medium" aria-hidden="true"></i>中</button>
+            <button type="button" data-pri="low" aria-pressed="false"><i class="dot p-low" aria-hidden="true"></i>低</button>
+          </div>
+        </div>
+      </div>
+      <div class="frow tags-row">
+        <span class="flabel" id="tag-label">タグ</span>
+        <div class="tag-filter" id="tag-filter" role="group" aria-labelledby="tag-label"></div>
+      </div>
+    </div>
+    <p class="save-note" id="save-note">読み込み中…</p>
+  </section>
+
+  <main id="main">
+    <div class="skel" id="loading" aria-busy="true" aria-label="タスクを読み込んでいます"><div></div><div></div><div></div></div>
+
+    <div class="empty-card" id="empty-first" hidden>
+      <h2>まだタスクがありません</h2>
+      <p>「＋ タスク追加」から、タスク名・締め切り日・完了目標日・優先度・タグ・メモを登録できます。</p>
+      <div class="empty-row">
+        <button type="button" class="btn primary" id="ef-add">＋ タスク追加</button>
+        <button type="button" class="btn" id="ef-import">JSONを読み込む</button>
+      </div>
+    </div>
+
+    <div class="empty-card" id="empty-filter" hidden>
+      <h2>条件に合うタスクはありません</h2>
+      <p id="empty-filter-text">完了状態・優先度・タグの絞り込みを変えてみてください。</p>
+      <div class="empty-row"><button type="button" class="btn" id="ef-reset">絞り込みを解除</button></div>
+    </div>
+
+    <div class="timeline" id="timeline" hidden></div>
+
+    <div id="cal-view" hidden>
+      <section class="cal-card" aria-labelledby="cal-month">
+        <div class="cal-top">
+          <h2 id="cal-month" aria-live="polite"></h2>
+          <span class="basis-pill" id="cal-basis"></span>
+          <div class="cal-nav">
+            <button type="button" class="btn" id="cal-prev" aria-label="前の月">◀</button>
+            <button type="button" class="btn" id="cal-today">今月</button>
+            <button type="button" class="btn" id="cal-next" aria-label="次の月">▶</button>
+          </div>
+        </div>
+        <div class="cal-week" aria-hidden="true"><span class="sun">日</span><span>月</span><span>火</span><span>水</span><span>木</span><span>金</span><span class="sat">土</span></div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="cal-legend" aria-label="色の意味">
+          <span><i class="lg-soon"></i>期限間近（3日以内）</span>
+          <span><i class="lg-today"></i>今日まで</span>
+          <span><i class="lg-over"></i>期限超過</span>
+        </div>
+        <p class="cal-undated" id="cal-undated" hidden><span id="cal-undated-text"></span></p>
+      </section>
+      <section class="day-panel" aria-labelledby="day-title" style="margin-top:18px">
+        <div class="day-head">
+          <h2 id="day-title"></h2>
+          <span class="day-hol" id="day-hol" hidden></span>
+          <span class="count" id="day-count"></span>
+        </div>
+        <ul class="day-list" id="day-list"></ul>
+        <p class="hint" id="day-empty" hidden></p>
+      </section>
+    </div>
+  </main>
+</div>
+
+<dialog id="dlg-task" aria-labelledby="dlg-task-title">
+  <form class="dlg" id="task-form" novalidate autocomplete="off">
+    <div class="dlg-head">
+      <h2 id="dlg-task-title">タスクを追加</h2>
+      <button type="button" class="x" id="f-close" aria-label="閉じる"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <div class="field">
+        <label for="f-title">タスク名</label>
+        <input type="text" id="f-title" class="inp" maxlength="200" placeholder="例：〇〇課へ個別フォロー" enterkeyhint="done">
+        <p class="err" id="f-title-err" hidden>タスク名を入力してください。</p>
+      </div>
+      <div class="field">
+        <label for="f-memo">メモ</label>
+        <textarea id="f-memo" class="inp" rows="3" maxlength="5000" placeholder="進捗状況・担当など（任意）"></textarea>
+      </div>
+      <div class="f-row3">
+        <div class="field"><label for="f-due">締め切り日</label><input type="date" id="f-due" class="inp"></div>
+        <div class="field"><label for="f-target">完了目標日</label><input type="date" id="f-target" class="inp"></div>
+        <div class="field">
+          <label for="f-pri">優先度</label>
+          <select id="f-pri" class="inp"><option value="high">高</option><option value="medium" selected>中</option><option value="low">低</option></select>
+        </div>
+      </div>
+      <p class="warn" id="f-date-warn" hidden>完了目標日が締め切り日より後になっています。</p>
+      <div class="more-body">
+        <div class="repeat-row">
+          <label class="cbx"><input type="checkbox" id="f-repeat">毎週繰り返す</label>
+          <div class="field">
+            <label for="f-weekday">実施曜日</label>
+            <select id="f-weekday" class="inp" disabled>
+              <option value="0">日曜日</option><option value="1" selected>月曜日</option><option value="2">火曜日</option><option value="3">水曜日</option><option value="4">木曜日</option><option value="5">金曜日</option><option value="6">土曜日</option>
+            </select>
+          </div>
+          <p class="hint">完了時に翌週分を自動作成します。</p>
+        </div>
+        <div class="tag-row">
+          <span class="flabel">タグ：</span>
+          <label class="sr" for="f-tag-pick">既存タグから選択</label>
+          <select id="f-tag-pick" class="inp"><option value="">既存タグから選択...</option></select>
+          <label class="sr" for="f-tag-new">新しいタグ</label>
+          <input type="text" id="f-tag-new" class="inp" maxlength="200" placeholder="新しいタグ（カンマ区切り）">
+        </div>
+        <div class="f-tags" id="f-tags" hidden></div>
+      </div>
+      <p class="stamp" id="f-stamp" hidden></p>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn danger-text" id="f-delete" hidden>削除</button>
+      <span class="kbd-hint" id="f-kbd">Enter で追加 ／ Esc で閉じる</span>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="f-cancel">キャンセル</button>
+      <button type="submit" class="btn primary" id="f-save">追加する</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-import" class="narrow" aria-labelledby="dlg-import-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <div style="flex:1">
+        <h2 id="dlg-import-title">JSONからインポート</h2>
+        <p class="sub">エクスポートしたJSONファイル（PCに自動保存したファイルも可）を読み込みます。</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <div class="stack" id="imp-step1">
+        <div class="drop" id="imp-drop">
+          <p class="drop-t">JSONファイルをここにドロップ</p>
+          <p class="hint">または</p>
+          <button type="button" class="btn" id="imp-pick">ファイルを選ぶ</button>
+          <input type="file" id="imp-file" class="sr" accept=".json,application/json" tabindex="-1">
+        </div>
+        <details class="paste" id="imp-paste">
+          <summary>JSONテキストを貼り付ける</summary>
+          <label class="sr" for="imp-text">JSONテキスト</label>
+          <textarea id="imp-text" class="inp code" rows="6" placeholder='{ "tasks": [ … ] }'></textarea>
+          <button type="button" class="btn" id="imp-parse">このテキストを読み込む</button>
+        </details>
+        <p class="err" id="imp-err" role="alert" hidden></p>
+      </div>
+      <div class="stack" id="imp-step2" hidden>
+        <p class="imp-file" id="imp-file-name"></p>
+        <p class="imp-sum" id="imp-summary"></p>
+        <p class="hint" id="imp-skip" hidden></p>
+        <p class="hint" id="imp-tags" hidden></p>
+        <ul class="imp-preview" id="imp-preview"></ul>
+        <fieldset class="field">
+          <legend>読み込み方</legend>
+          <div class="radio-list">
+            <label class="radio"><input type="radio" name="imp-mode" id="imp-merge" value="merge" checked><span><b>今のタスクに追加する</b><small>同じIDのタスクは、読み込んだ内容で上書きします。</small></span></label>
+            <label class="radio"><input type="radio" name="imp-mode" id="imp-replace" value="replace"><span><b>すべて置き換える</b><small>今のタスクを削除して、読み込んだタスクだけにします。</small></span></label>
+          </div>
+        </fieldset>
+        <p class="warn" id="imp-replace-warn" hidden></p>
+      </div>
+    </div>
+    <div class="dlg-foot">
+      <button type="button" class="btn ghost" id="imp-back" hidden>選び直す</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" id="imp-cancel">キャンセル</button>
+      <button type="button" class="btn primary" id="imp-go" disabled>インポートする</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-export" class="narrow" aria-labelledby="dlg-export-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <div style="flex:1">
+        <h2 id="dlg-export-title">エクスポート</h2>
+        <p class="sub">この画面ではファイルを直接保存できません。下のJSONをコピーし、<span id="exp-name"></span> などの名前でテキストファイルとして保存してください。</p>
+      </div>
+    </div>
+    <div class="dlg-body">
+      <label class="sr" for="exp-text">エクスポートしたJSON</label>
+      <textarea id="exp-text" class="inp code" rows="12" readonly></textarea>
+    </div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="exp-close">閉じる</button><button type="button" class="btn primary" id="exp-copy">コピー</button></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-trash" class="narrow" aria-labelledby="dlg-trash-title">
+  <div class="dlg">
+    <div class="dlg-head">
+      <div style="flex:1">
+        <h2 id="dlg-trash-title">ゴミ箱</h2>
+        <p class="sub" id="trash-sub"></p>
+      </div>
+      <button type="button" class="x" id="trash-x" aria-label="閉じる"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5 5l10 10M15 5L5 15"/></svg></button>
+    </div>
+    <div class="dlg-body">
+      <ul class="trash-list" id="trash-list"></ul>
+      <p class="hint" id="trash-empty" hidden>ゴミ箱は空です。</p>
+    </div>
+    <div class="dlg-foot"><button type="button" class="btn danger-text" id="trash-clear">ゴミ箱を空にする</button><span class="spacer"></span><button type="button" class="btn" id="trash-close">閉じる</button></div>
+  </div>
+</dialog>
+
+<dialog id="dlg-confirm" class="narrow" aria-labelledby="cf-title">
+  <div class="dlg">
+    <div class="dlg-head"><h2 id="cf-title"></h2></div>
+    <div class="dlg-body"><p id="cf-msg" style="margin:0"></p></div>
+    <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="cf-no">キャンセル</button><button type="button" class="btn danger" id="cf-yes"></button></div>
+  </div>
+</dialog>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden>
+  <span id="toast-msg"></span>
+  <button type="button" id="toast-act" hidden></button>
+</div>
+
+<script>
+/*
+ * TODO — MVC 構成
+ *
+ *   Model       データと業務ルール。DOM には触れない。
+ *     Task              タスク1件の正規化・判定（期限の状態・絞り込み・並べ替え・毎週繰り返し）
+ *     LocalRepository   このブラウザ（localStorage）への保存
+ *     CloudRepository   アカウント（自分専用領域）への保存
+ *     TaskModel         タスク一覧とタグ一覧の保持・追加・更新・削除・検索・入出力
+ *     ViewStateModel    表示条件（表示方法・完了状態・日付の基準・優先度・タグ・表示中の月と日）
+ *
+ *   View        DOM の描画と操作の受け取りだけを担当。モデルを直接変更しない。
+ *     PanelView / PlaceholderView / TimelineView / CalendarView
+ *     TaskDialogView / ImportDialogView / ExportDialogView / TrashDialogView / ConfirmDialogView / ToastView
+ *
+ *   Controller  View からの操作を受けてモデルを更新し、モデルの変更を受けて View を描き直す。
+ *     AppController
+ *
+ *   Platform    実行環境との橋渡し（アカウント保存・ファイル保存・PCファイルへの自動保存）。
+ */
+(() => {
+  'use strict';
+
+  /* =========================================================
+   * 共通ユーティリティ
+   * ======================================================= */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const short = (s) => (s.length > 18 ? s.slice(0, 18) + '…' : s);
+  /** 続く空白を1つにして前後の空白を除く */
+  const squash = (s) => String(s).replace(/\s+/g, ' ').trim();
+  const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+  async function pool(items, fn, n = 4) {
+    let i = 0;
+    const run = async () => { while (i < items.length) { const it = items[i++]; await fn(it); } };
+    await Promise.all(Array.from({ length: Math.min(n, items.length) }, run));
+  }
+
+  /** localStorage の読み書き。使えない環境（保存が禁止された設定など）では get は null、set は false を返す */
+  const Store = {
+    get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, v); return true; } catch (e) { return false; } },
+    remove(k) { try { localStorage.removeItem(k); } catch (e) { /* noop */ } },
+  };
+
+  /** 変更を購読者へ知らせる最小の仕組み（モデルが継承する） */
+  class Emitter {
+    constructor() { this.handlers = new Set(); }
+    subscribe(fn) { this.handlers.add(fn); return () => this.handlers.delete(fn); }
+    emit(e) { this.handlers.forEach((fn) => fn(e || {})); }
+  }
+
+  const DateUtil = (() => {
+    const pad = (n) => String(n).padStart(2, '0');
+    const ymd = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+    function parse(s) {
+      if (typeof s !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+      const [y, m, d] = s.split('-').map(Number);
+      const dt = new Date(y, m - 1, d);
+      return dt.getFullYear() === y && dt.getMonth() === m - 1 && dt.getDate() === d ? dt : null;
+    }
+    function startOfToday() { const t = new Date(); t.setHours(0, 0, 0, 0); return t; }
+    const today = () => ymd(new Date());
+    function addDays(n, from) {
+      const base = (from && parse(from)) || startOfToday();
+      base.setDate(base.getDate() + n);
+      return ymd(base);
+    }
+    function diffDays(s) { const d = parse(s); return d ? Math.round((d - startOfToday()) / 86400000) : null; }
+    function between(a, b) { const x = parse(a), y = parse(b); return x && y ? Math.round((y - x) / 86400000) : null; }
+    const thisYear = () => new Date().getFullYear();
+    function fmtMD(s) { const d = parse(s); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ''; }
+    function fmtShort(s) {
+      const d = parse(s); if (!d) return '';
+      const y = d.getFullYear() !== thisYear() ? `${d.getFullYear()}/` : '';
+      return `${y}${d.getMonth() + 1}/${d.getDate()}（${WEEKDAYS[d.getDay()]}）`;
+    }
+    function fmtLong(s) {
+      const d = parse(s); if (!d) return '';
+      const y = d.getFullYear() !== thisYear() ? `${d.getFullYear()}年` : '';
+      return `${y}${d.getMonth() + 1}月${d.getDate()}日（${WEEKDAYS[d.getDay()]}）`;
+    }
+    function fmtStamp(iso) {
+      const d = new Date(iso); if (isNaN(d)) return '';
+      return `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    }
+    const fmtTime = (d) => `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    /** "2026/10/5"・"2026年10月5日"・ISO 日時・エポックミリ秒などを YYYY-MM-DD に揃える。読めなければ空文字 */
+    function normalize(v) {
+      if (typeof v === 'number' && isFinite(v) && v > 1e11) return ymd(new Date(v));
+      if (typeof v !== 'string') return '';
+      const m = v.trim().match(/^(\d{4})\s*[-/.年]\s*(\d{1,2})\s*[-/.月]\s*(\d{1,2})/);
+      if (!m) return '';
+      const s = `${m[1]}-${pad(+m[2])}-${pad(+m[3])}`;
+      return parse(s) ? s : '';
+    }
+    const nowIso = () => new Date().toISOString();
+    function validIso(v) {
+      if (typeof v === 'number' && isFinite(v) && v > 1e11) return new Date(v).toISOString();
+      return (typeof v === 'string' && v && !isNaN(Date.parse(v))) ? new Date(v).toISOString() : null;
+    }
+    function shiftMonth(month, delta) {
+      const [y, m] = month.split('-').map(Number);
+      const d = new Date(y, m - 1 + delta, 1);
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}`;
+    }
+    /** from の翌日以降（includeFrom なら当日も）で最初の曜日 wd の日付 */
+    function nextWeekday(wd, from, includeFrom) {
+      const d = (from && parse(from)) || startOfToday();
+      if (!includeFrom) d.setDate(d.getDate() + 1);
+      while (d.getDay() !== wd) d.setDate(d.getDate() + 1);
+      return ymd(d);
+    }
+    return { ymd, parse, today, addDays, diffDays, between, fmtMD, fmtShort, fmtLong, fmtStamp, fmtTime, normalize, nowIso, validIso, shiftMonth, nextWeekday };
+  })();
+
+  /** 日本の祝日（祝日法の規則から計算。振替休日・国民の休日を含む） */
+  const JpHoliday = (() => {
+    const cache = new Map();
+    const key = (y, m, d) => DateUtil.ymd(new Date(y, m - 1, d));
+    const nthMonday = (y, m, n) => 1 + ((8 - new Date(y, m - 1, 1).getDay()) % 7) + (n - 1) * 7;
+    const equinox = (y, base) => Math.floor(base + 0.242194 * (y - 1980) - Math.floor((y - 1980) / 4));
+    function build(y) {
+      const h = new Map();
+      const add = (m, d, name) => h.set(key(y, m, d), name);
+      add(1, 1, '元日'); add(1, nthMonday(y, 1, 2), '成人の日');
+      add(2, 11, '建国記念の日'); add(2, 23, '天皇誕生日');
+      add(3, equinox(y, 20.8431), '春分の日');
+      add(4, 29, '昭和の日'); add(5, 3, '憲法記念日'); add(5, 4, 'みどりの日'); add(5, 5, 'こどもの日');
+      add(7, nthMonday(y, 7, 3), '海の日'); add(8, 11, '山の日');
+      add(9, nthMonday(y, 9, 3), '敬老の日'); add(9, equinox(y, 23.2488), '秋分の日');
+      add(10, nthMonday(y, 10, 2), 'スポーツの日');
+      add(11, 3, '文化の日'); add(11, 23, '勤労感謝の日');
+      [...h.keys()].sort().forEach((k) => {
+        const d = DateUtil.parse(k);
+        if (d.getDay() !== 0) return;
+        do { d.setDate(d.getDate() + 1); } while (h.has(DateUtil.ymd(d)));
+        h.set(DateUtil.ymd(d), '振替休日');
+      });
+      for (let day = 1; day <= 30; day++) {
+        const k = key(y, 9, day);
+        if (h.has(k) || new Date(y, 8, day).getDay() === 0) continue;
+        if (h.has(key(y, 9, day - 1)) && h.has(key(y, 9, day + 1))) h.set(k, '国民の休日');
+      }
+      return h;
+    }
+    return {
+      name(s) {
+        const y = Number(String(s).slice(0, 4));
+        if (!y) return '';
+        if (!cache.has(y)) cache.set(y, build(y));
+        return cache.get(y).get(s) || '';
+      },
+    };
+  })();
+
+
+  /* =========================================================
+   * Model
+   * ======================================================= */
+  const PRIORITY = { high: { label: '高', rank: 0 }, medium: { label: '中', rank: 1 }, low: { label: '低', rank: 2 } };
+  const BASIS = {
+    due: { field: 'dueDate', label: '締め切り日', short: '締切', chip: '締め切り' },
+    target: { field: 'targetDate', label: '完了目標日', short: '目標', chip: '完了目標' },
+  };
+  const STORAGE_KEY = 'yarukoto.tasks.v1';            // 以前の版のデータを引き継ぐため旧名のまま
+  const TAG_KEY = 'todo.tags.v1';
+  const LEGACY_CATEGORY_KEY = 'yarukoto.categories.v1';
+  const CLOUD_NS = 'yarukoto';
+  const UI_KEY = 'todo.ui.v3';
+  const SOON_DAYS = 3;                                 // 「期限間近」とみなす日数
+  const TRASH_DAYS = 60;                               // ゴミ箱に残す日数。過ぎたら完全に削除する
+  const LIMIT = { title: 200, memo: 5000, tagName: 40, tagsPerTask: 12 };   // 文字数・個数の上限
+
+  /** タスク1件に関する規則 */
+  const Task = (() => {
+    const str = (v) => (typeof v === 'string' || typeof v === 'number') ? String(v) : '';
+    const pick = (raw, keys) => {
+      for (const k of keys) { const v = raw[k]; if (v !== undefined && v !== null && v !== '') return v; }
+      return undefined;
+    };
+    function normPriority(v) {
+      const s = str(v).trim().toLowerCase();
+      if (['high', '高', 'h', '3', 'urgent', 'important'].includes(s)) return 'high';
+      if (['low', '低', 'l', '1'].includes(s)) return 'low';
+      return 'medium';
+    }
+    const validId = (s) => typeof s === 'string' && /^[A-Za-z0-9_\-.~:@+]{1,120}$/.test(s) && s !== '.' && s !== '..';
+    const newId = () => 't-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+
+    /* タグ名の規則：前後の空白を除き40文字まで。「__」で始まる名前は内部用に予約 */
+    function cleanTagName(v) {
+      const s = squash(str(v)).slice(0, LIMIT.tagName);
+      return s && !s.startsWith('__') ? s : '';
+    }
+    function cleanTags(list) {
+      const out = [];
+      (Array.isArray(list) ? list : []).forEach((v) => { const n = cleanTagName(v); if (n && !out.includes(n)) out.push(n); });
+      return out;
+    }
+    const splitTagText = (s) => str(s).split(/[,、，]/);
+    function splitTags(v) {
+      if (Array.isArray(v)) return v.map((x) => (x && typeof x === 'object') ? (x.name ?? x.label ?? x.title) : x);
+      if (typeof v === 'string') return splitTagText(v);
+      return [];
+    }
+
+    function parseWeekday(v) {
+      if (typeof v === 'number' && v >= 0 && v <= 6) return Math.floor(v);
+      const s = str(v).trim().toLowerCase();
+      if (!s) return null;
+      if (/^[0-6]$/.test(s)) return Number(s);
+      const ja = WEEKDAYS.findIndex((w) => s.startsWith(w));
+      if (ja >= 0) return ja;
+      const en = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].findIndex((w) => s.startsWith(w));
+      return en >= 0 ? en : null;
+    }
+    /** 毎週繰り返しの設定を { freq:'weekly', weekday } に揃える。繰り返さなければ null */
+    function parseRepeat(raw, due) {
+      const r = raw.repeat ?? raw.recurrence ?? raw.recurring;
+      let weekly = false, wd = null;
+      if (r && typeof r === 'object') {
+        const f = str(r.freq ?? r.type ?? r.frequency).toLowerCase();
+        weekly = f === 'weekly' || f === 'week' || r.weekly === true;
+        wd = parseWeekday(r.weekday ?? r.day ?? r.dow ?? r.dayOfWeek);
+      } else if (r === true || ['weekly', 'week', '毎週'].includes(str(r).toLowerCase())) weekly = true;
+      if (raw.repeatWeekly === true || raw.weekly === true) weekly = true;
+      if (!weekly) return null;
+      if (wd === null) wd = parseWeekday(raw.repeatWeekday ?? raw.weekday ?? raw.repeatDay ?? raw.dayOfWeek);
+      if (wd === null) { const d = DateUtil.parse(due); wd = d ? d.getDay() : 1; }
+      return { freq: 'weekly', weekday: wd };
+    }
+
+    /** どこから来たデータでも、決まった形のタスクに揃える。タスク名が空なら null */
+    function normalize(raw) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+      const title = str(pick(raw, ['title', 'name', 'text', 'task', 'content', 'タスク名', '件名'])).trim().slice(0, LIMIT.title);
+      if (!title) return null;
+      const now = DateUtil.nowIso();
+      const status = str(raw.status).toLowerCase();
+      const done = raw.done === true || raw.completed === true || raw.isDone === true || raw.checked === true || raw.done === 'true'
+        || ['done', 'completed', 'complete', '完了'].includes(status);
+      const createdAt = DateUtil.validIso(raw.createdAt ?? raw.created) || now;
+      const dueDate = DateUtil.normalize(pick(raw, ['dueDate', 'due', 'deadline', 'dueOn', 'due_date', 'limit', '締め切り日', '締切日', '締切', '期限']));
+      const targetDate = DateUtil.normalize(pick(raw, ['targetDate', 'target', 'goalDate', 'goal', 'plannedDate', 'target_date', 'planDate', '完了目標日', '目標日']));
+      const tags = cleanTags([].concat(
+        splitTags(raw.tags),
+        splitTags(pick(raw, ['tag', 'labels', 'label', 'タグ'])),
+        splitTags(pick(raw, ['category', 'categories', 'カテゴリ'])),
+      )).slice(0, LIMIT.tagsPerTask);
+      return {
+        id: validId(raw.id) ? raw.id : newId(),
+        title,
+        priority: normPriority(pick(raw, ['priority', 'prio', 'importance', '優先度'])),
+        tags,
+        memo: str(pick(raw, ['memo', 'note', 'notes', 'description', 'detail', 'details', 'メモ', '備考'])).slice(0, LIMIT.memo),
+        dueDate,
+        targetDate,
+        repeat: parseRepeat(raw, dueDate),
+        done,
+        createdAt,
+        updatedAt: DateUtil.validIso(raw.updatedAt ?? raw.updated) || createdAt,
+        completedAt: done ? (DateUtil.validIso(raw.completedAt) || now) : null,
+        spawnedId: validId(raw.spawnedId) ? raw.spawnedId : null,
+        deletedAt: DateUtil.validIso(raw.deletedAt) || null,
+      };
+    }
+    function create(fields) {
+      const now = DateUtil.nowIso();
+      return normalize(Object.assign({}, fields, { id: newId(), done: false, createdAt: now, updatedAt: now, completedAt: null, spawnedId: null, deletedAt: null }));
+    }
+    /** 一部の項目を変えた写しを返す（更新日時も進める） */
+    function patch(t, fields, now = DateUtil.nowIso()) {
+      return Object.assign({}, t, fields, { updatedAt: now });
+    }
+    /** ゴミ箱から完全に削除されるまでの残り日数（切り上げ。過ぎていれば 0） */
+    function trashDaysLeft(t, now = Date.now()) {
+      const end = Date.parse(t.deletedAt) + TRASH_DAYS * 86400000;
+      return Math.max(0, Math.ceil((end - now) / 86400000));
+    }
+    /** 完了・未完了を切り替えた写しを返す */
+    function toggled(t) {
+      const now = DateUtil.nowIso();
+      return patch(t, { done: !t.done, completedAt: t.done ? null : now }, now);
+    }
+
+    /** 日付から見た状態：'overdue'（期限切れ）/ 'today'（今日まで）/ 'soon'（3日以内）/ '' */
+    function dateState(s) {
+      const d = DateUtil.diffDays(s);
+      if (d === null) return '';
+      return d < 0 ? 'overdue' : d === 0 ? 'today' : d <= SOON_DAYS ? 'soon' : '';
+    }
+    /** タスクの期限の状態（締め切り日で判定）。完了済みと締め切り日なしは '' */
+    const urgency = (t) => (t.done || !t.dueDate) ? '' : dateState(t.dueDate);
+
+    function matchesFilter(t, { status, pri, tag }) {
+      if (status === 'open' && t.done) return false;
+      if (status === 'done' && !t.done) return false;
+      if (pri && t.priority !== pri) return false;
+      if (tag && !t.tags.includes(tag)) return false;
+      return true;
+    }
+    const cmpDate = (x, y) => (x && y) ? (x < y ? -1 : x > y ? 1 : 0) : x ? -1 : y ? 1 : 0;
+    const cmpPri = (a, b) => PRIORITY[a.priority].rank - PRIORITY[b.priority].rank;
+    /** 日付の基準（締め切り日／完了目標日）で古い順。日付なしは最後 */
+    function sorter(basis) {
+      const f = BASIS[basis].field, o = basis === 'due' ? 'targetDate' : 'dueDate';
+      return (a, b) => cmpDate(a[f], b[f]) || (a.done - b.done) || cmpPri(a, b) || cmpDate(a[o], b[o]) || a.title.localeCompare(b.title, 'ja');
+    }
+    const byDay = (a, b) => (a.done - b.done) || cmpPri(a, b) || a.title.localeCompare(b.title, 'ja');
+
+    const repeatLabel = (r) => `毎週${WEEKDAYS[r.weekday]}曜`;
+    /** 毎週繰り返しのタスクを完了したときに作る、翌週分のタスク */
+    function nextOccurrence(t) {
+      const wd = t.repeat.weekday;
+      const today = DateUtil.today();
+      const anchor = t.dueDate || t.targetDate;
+      const base = anchor && anchor > today ? anchor : today;
+      const next = DateUtil.nextWeekday(wd, base, false);
+      let dueDate = '', targetDate = '';
+      if (t.dueDate) {
+        dueDate = next;
+        if (t.targetDate) targetDate = DateUtil.addDays(DateUtil.between(t.dueDate, t.targetDate), next);
+      } else if (t.targetDate) targetDate = next;
+      else dueDate = next;
+      return create({ title: t.title, priority: t.priority, tags: t.tags.slice(), memo: t.memo, dueDate, targetDate, repeat: Object.assign({}, t.repeat) });
+    }
+    return { newId, normalize, create, patch, toggled, trashDaysLeft, cleanTags, splitTagText, dateState, urgency, matchesFilter, sorter, byDay, repeatLabel, nextOccurrence };
+  })();
+
+  /** 保存先：このブラウザ */
+  class LocalRepository {
+    constructor({ merge, mergeTags } = {}) { this.kind = 'local'; this.ok = true; this.merge = merge || null; this.mergeTags = mergeTags || null; }
+    start(cb) {
+      let list = this.read();
+      let tags = this.readTags();
+      if (this.merge) {
+        const map = new Map(list.map((t) => [t.id, t]));
+        this.merge.forEach((t) => map.set(t.id, t));
+        list = [...map.values()];
+      }
+      if (this.mergeTags) tags = Task.cleanTags(tags.concat(this.mergeTags));
+      this.ok = this.probe();
+      if (this.merge) this.saveAll(list);
+      if (this.mergeTags) this.putTags(tags);
+      cb.onTags(tags);
+      cb.onData(list);
+    }
+    read() {
+      const s = Store.get(STORAGE_KEY); if (!s) return [];
+      try {
+        const a = JSON.parse(s);
+        return Array.isArray(a) ? a.map(Task.normalize).filter(Boolean) : [];
+      } catch (e) { return []; }
+    }
+    readTags() {
+      const s = Store.get(TAG_KEY) ?? Store.get(LEGACY_CATEGORY_KEY);
+      try { return Task.cleanTags(JSON.parse(s || '[]')); } catch (e) { return []; }
+    }
+    probe() {
+      const ok = Store.set(STORAGE_KEY + '.probe', '1');
+      Store.remove(STORAGE_KEY + '.probe');
+      return ok;
+    }
+    saveAll(all) { this.ok = Store.set(STORAGE_KEY, JSON.stringify(all)); }
+    putTags(tags) {
+      this.ok = Store.set(TAG_KEY, JSON.stringify(tags));
+      return Promise.resolve();
+    }
+    put(list, all) { this.saveAll(all); return Promise.resolve(); }
+    remove(ids, all) { this.saveAll(all); return Promise.resolve(); }
+    dispose() {}
+  }
+
+  /** 保存先：アカウント（自分専用の領域。ほかの人からは見えない） */
+  class CloudRepository {
+    constructor(db, uid) {
+      this.kind = 'cloud'; this.ok = true;
+      this.meta = db.doc(`data/users/${uid}/${CLOUD_NS}`);   // タグ一覧を持つ文書
+      this.col = this.meta.collection('tasks');                 // タスク1件＝1文書
+      this.chains = new Map(); this.unsubs = []; this.cb = null; this.disposed = false; this.retried = {};
+    }
+    start(cb) { this.cb = cb; this.watchTasks(); this.watchTags(); }
+    watchTasks() {
+      this.unsubs.push(this.col.onSnapshot((snap) => {
+        if (this.disposed) return;
+        this.cb.onData(snap.docs.map((d) => Task.normalize(Object.assign({}, d.data(), { id: d.id }))).filter(Boolean));
+      }, (err) => this.watchFailed(err, 'tasks', () => this.watchTasks())));
+    }
+    watchTags() {
+      this.unsubs.push(this.meta.onSnapshot((snap) => {
+        if (this.disposed) return;
+        const d = snap.exists ? snap.data() : null;
+        this.cb.onTags(d ? (Array.isArray(d.tags) ? d.tags : Array.isArray(d.categories) ? d.categories : []) : []);
+      }, (err) => this.watchFailed(err, 'tags', () => this.watchTags())));
+    }
+    watchFailed(err, key, retry) {
+      if (this.disposed) return;
+      if (err && err.code === 'unavailable' && !this.retried[key]) { this.retried[key] = true; retry(); return; }
+      this.cb.onFatal(err);
+    }
+    /** 同じ文書への書き込みは1件ずつ順番に行う */
+    write(key, fn) {
+      const prev = this.chains.get(key) || Promise.resolve();
+      const run = async () => {
+        try { return await fn(); }
+        catch (e) {
+          if (e && e.code === 'unavailable') { await sleep(400 + Math.random() * 800); return fn(); }
+          throw e;
+        }
+      };
+      const next = prev.then(run, run);
+      this.chains.set(key, next);
+      const clean = () => { if (this.chains.get(key) === next) this.chains.delete(key); };
+      next.then(clean, clean);
+      return next.catch((e) => this.fail(e));
+    }
+    fail(e) {
+      if (this.disposed) return;
+      const code = e && e.code;
+      const fatal = ['invalid_argument', 'not_granted', 'capability_disabled', 'capability_removed', 'revoked', 'transform_error'];
+      if (fatal.includes(code)) this.cb.onFatal(e); else this.cb.onError(code || 'unknown');
+    }
+    put(list) { return pool(list, (t) => { const body = JSON.parse(JSON.stringify(t)); return this.write(t.id, () => this.col.doc(t.id).set(body)); }); }
+    remove(ids) { return pool(ids, (id) => this.write(id, () => this.col.doc(id).delete())); }
+    putTags(tags) {
+      const body = { tags: tags.slice(), updatedAt: DateUtil.nowIso() };
+      return this.write('#tags', () => this.meta.set(body));
+    }
+    dispose() { this.disposed = true; this.unsubs.forEach((u) => { try { u(); } catch (e) { /* noop */ } }); }
+  }
+
+  /** タスク一覧とタグ一覧のモデル */
+  class TaskModel extends Emitter {
+    constructor() {
+      super();
+      this.tasks = [];           // ゴミ箱のタスク（deletedAt あり）も含む
+      this.tags = [];            // 登録済みタグ（追加した順）
+      this.repo = null;
+      this.tasksLoaded = false;
+      this.tagsLoaded = false;
+    }
+    get loaded() { return this.tasksLoaded && this.tagsLoaded; }
+
+    attach(repo) {
+      if (this.repo) this.repo.dispose();
+      this.repo = repo;
+      repo.start({
+        onData: (list) => { if (this.repo !== repo) return; this.tasks = list; this.tasksLoaded = true; this.emit({ type: 'change', source: 'remote' }); },
+        onTags: (list) => { if (this.repo !== repo) return; this.tags = Task.cleanTags(list); this.tagsLoaded = true; this.emit({ type: 'change', source: 'remote' }); },
+        onFatal: (error) => { if (this.repo === repo) this.emit({ type: 'fatal', error }); },
+        onError: (code) => { if (this.repo === repo) this.emit({ type: 'error', code }); },
+      });
+    }
+    get storage() { return { kind: this.repo ? this.repo.kind : 'connecting', loaded: this.loaded, ok: !this.repo || this.repo.ok !== false }; }
+
+    /** ゴミ箱に入っていないタスク */
+    active() { return this.tasks.filter((t) => !t.deletedAt); }
+    size() { return this.active().length; }
+    all() { return this.active().map((t) => Object.assign({}, t)); }
+    /** ゴミ箱の分も含めたすべて（保存先を切り替えるときに引き継ぐため） */
+    records() { return this.tasks.map((t) => Object.assign({}, t)); }
+    get(id) { return this.tasks.find((t) => t.id === id) || null; }
+    progress() { const list = this.active(); return { done: list.filter((t) => t.done).length, total: list.length }; }
+
+    put(list) {
+      if (!this.repo || !list.length) return Promise.resolve();
+      list.forEach((t) => {
+        const i = this.tasks.findIndex((x) => x.id === t.id);
+        if (i >= 0) this.tasks[i] = t; else this.tasks.push(t);
+      });
+      const p = this.repo.put(list, this.tasks);
+      this.registerTags(list.flatMap((t) => t.tags));
+      this.emit({ type: 'change', source: 'local' });
+      return p;
+    }
+    remove(ids) {
+      if (!this.repo || !ids.length) return Promise.resolve();
+      const set = new Set(ids);
+      this.tasks = this.tasks.filter((t) => !set.has(t.id));
+      const p = this.repo.remove(ids, this.tasks);
+      this.emit({ type: 'change', source: 'local' });
+      return p;
+    }
+    /** 完了・未完了を切り替える。毎週繰り返しのタスクを完了にしたら翌週分を作って返す（作るのは1回だけ） */
+    toggleDone(id) {
+      const t = this.get(id); if (!t) return null;
+      const updated = Task.toggled(t);
+      let next = null;
+      const spawned = t.spawnedId && this.get(t.spawnedId);
+      if (updated.done && t.repeat && !(spawned && !spawned.deletedAt)) {
+        next = Task.nextOccurrence(t);
+        updated.spawnedId = next.id;
+      }
+      this.put(next ? [updated, next] : [updated]);
+      return next;
+    }
+
+    /* --- ゴミ箱 --- */
+    /** ゴミ箱のタスク（削除した日時の新しい順） */
+    trashed() { return this.tasks.filter((t) => t.deletedAt).sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : a.deletedAt > b.deletedAt ? -1 : 0)); }
+    /** ゴミ箱へ移す。移したタスクを返す */
+    trash(ids) { return this.setDeleted(ids, true); }
+    /** ゴミ箱から戻す。戻したタスクを返す */
+    restore(ids) { return this.setDeleted(ids, false); }
+    setDeleted(ids, deleted) {
+      const now = DateUtil.nowIso();
+      const list = ids.map((id) => this.get(id)).filter((t) => t && Boolean(t.deletedAt) !== deleted)
+        .map((t) => Task.patch(t, { deletedAt: deleted ? now : null }, now));
+      this.put(list);
+      return list;
+    }
+    /** ゴミ箱に入ってから TRASH_DAYS 日を過ぎたタスクを完全に削除する。削除した件数を返す */
+    purgeExpired(now = Date.now()) {
+      const ids = this.trashed().filter((t) => Task.trashDaysLeft(t, now) === 0).map((t) => t.id);
+      this.remove(ids);
+      return ids.length;
+    }
+
+    importTasks(list, mode, tags) {
+      if (mode === 'replace') {
+        const keep = new Set(list.map((t) => t.id));
+        this.remove(this.tasks.filter((t) => !keep.has(t.id)).map((t) => t.id));
+        this.tags = [];
+      }
+      this.registerTags(tags || [], mode === 'replace');
+      return this.put(list);
+    }
+
+    /* --- タグ --- */
+    /** 登録済みタグ（追加した順）に、タスクにだけ付いているタグを加えた一覧。件数つき */
+    tagList() {
+      const used = new Map();
+      this.active().forEach((t) => t.tags.forEach((n) => used.set(n, (used.get(n) || 0) + 1)));
+      const extra = [...used.keys()].filter((n) => !this.tags.includes(n)).sort((a, b) => a.localeCompare(b, 'ja'));
+      return this.tags.concat(extra).map((name) => ({ name, count: used.get(name) || 0 }));
+    }
+    tagNames() { return this.tagList().map((c) => c.name); }
+    registerTags(names, force) {
+      const next = Task.cleanTags(this.tags.concat(names));
+      if (!force && next.length === this.tags.length) return;
+      this.tags = next;
+      if (this.repo) this.repo.putTags(this.tags);
+    }
+    query(f) { return this.active().filter((t) => Task.matchesFilter(t, f)).sort(Task.sorter(f.basis)); }
+    groupByDate(list, field) {
+      const map = new Map();
+      list.forEach((t) => {
+        const d = t[field]; if (!d) return;
+        if (!map.has(d)) map.set(d, []);
+        map.get(d).push(t);
+      });
+      map.forEach((arr) => arr.sort(Task.byDay));
+      return map;
+    }
+
+    exportJSON() {
+      const tasks = this.active()
+        .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+        .map((t) => ({
+          id: t.id, title: t.title, priority: t.priority, tags: t.tags, memo: t.memo,
+          dueDate: t.dueDate, targetDate: t.targetDate, repeat: t.repeat, done: t.done,
+          createdAt: t.createdAt, updatedAt: t.updatedAt, completedAt: t.completedAt,
+        }));
+      return JSON.stringify({ app: 'TODO', format: 'todo-tasks', version: 2, exportedAt: DateUtil.nowIso(), count: tasks.length, tags: this.tagNames(), tasks }, null, 2);
+    }
+    static parseImport(text) {
+      let data;
+      try { data = JSON.parse(text); }
+      catch (e) { throw new Error('JSONとして読み込めませんでした。ファイルの中身が壊れていないか確認してください。'); }
+      const arr = Array.isArray(data) ? data
+        : data && typeof data === 'object' ? (['tasks', 'todos', 'items', 'data'].map((k) => data[k]).find(Array.isArray) || null) : null;
+      if (!arr) throw new Error('タスクの一覧が見つかりません。"tasks" 配列を含むJSONを選んでください。');
+      const tasks = []; let skipped = 0; const seen = new Set();
+      arr.forEach((r) => {
+        const t = Task.normalize(r);
+        if (!t) { skipped++; return; }
+        if (seen.has(t.id)) t.id = Task.newId();
+        seen.add(t.id); tasks.push(t);
+      });
+      if (!tasks.length) throw new Error('読み込めるタスクがありません。タスク名が空のものは読み込みません。');
+      const tagSrc = data && !Array.isArray(data) ? (data.tags ?? data.categories) : [];
+      const tags = Task.cleanTags(Array.isArray(tagSrc) ? tagSrc.map((x) => (x && typeof x === 'object') ? x.name : x) : []);
+      return { tasks, skipped, tags };
+    }
+  }
+
+  /** 表示条件のモデル */
+  class ViewStateModel extends Emitter {
+    constructor() {
+      super();
+      const t = DateUtil.today();
+      this.state = { layout: 'list', status: 'all', basis: 'due', pri: '', tag: '', month: t.slice(0, 7), selected: t };
+      this.persistKeys = ['layout', 'status', 'basis'];
+      this.restore();
+    }
+    get() { return this.state; }
+    set(patch) {
+      let changed = false;
+      Object.keys(patch).forEach((k) => { if (this.state[k] !== patch[k]) { this.state[k] = patch[k]; changed = true; } });
+      if (!changed) return;
+      if (this.persistKeys.some((k) => k in patch)) this.persist();
+      this.emit({ type: 'ui' });
+    }
+    restore() {
+      try {
+        const u = JSON.parse(Store.get(UI_KEY) || '{}') || {};
+        if (['list', 'calendar'].includes(u.layout)) this.state.layout = u.layout;
+        if (['all', 'open', 'done'].includes(u.status)) this.state.status = u.status;
+        if (BASIS[u.basis]) this.state.basis = u.basis;
+      } catch (e) { /* noop */ }
+    }
+    persist() {
+      const o = {}; this.persistKeys.forEach((k) => { o[k] = this.state[k]; });
+      Store.set(UI_KEY, JSON.stringify(o));
+    }
+  }
+
+
+  /* =========================================================
+   * Platform（実行環境との橋渡し）
+   * ======================================================= */
+  /** JSON の保存画面の設定。id が同じ保存画面どうしで、前回選んだフォルダを共有する（エクスポートと PC ファイルへの自動保存） */
+  const JSON_PICKER = { id: 'todo-json', types: [{ description: 'JSON ファイル', accept: { 'application/json': ['.json'] } }] };
+
+  const Platform = {
+    standalone: false,
+    downloads: null,
+    hasHost() { return !!(window.claude && typeof window.claude.use === 'function'); },
+    waitForHost() {
+      return new Promise((resolve) => {
+        if (this.hasHost()) { resolve(true); return; }
+        let framed = true;
+        try { framed = window.top !== window; } catch (e) { framed = true; }
+        if (!framed) { resolve(false); return; }
+        let n = 0;
+        const iv = setInterval(() => {
+          n++;
+          if (this.hasHost()) { clearInterval(iv); resolve(true); }
+          else if (n > 20) { clearInterval(iv); resolve(false); }
+        }, 100);
+      });
+    },
+    use(name) {
+      try { return Promise.resolve(window.claude.use(name)).catch(() => null); }
+      catch (e) { return Promise.resolve(null); }
+    },
+    /** 保存先の候補を調べる。{ db, uid, canWrite } を返す */
+    async connect() {
+      if (!(await this.waitForHost())) { this.standalone = true; return {}; }
+      const [db, user, downloads] = await Promise.all([this.use('db'), this.use('user'), this.use('downloads')]);
+      this.downloads = downloads;
+      let uid = null, canWrite = null;
+      if (user) {
+        try { uid = await user.id(); } catch (e) { uid = null; }
+        try { canWrite = await user.can('data.write'); } catch (e) { canWrite = null; }
+      }
+      return { db, uid, canWrite };
+    },
+    /** ファイルを保存する。{ ok, status | code } を返す */
+    async saveFile(filename, text) {
+      if (this.standalone) {
+        // 保存先を選べるブラウザ（Chrome・Edge）では保存画面を出す。前回選んだフォルダから開く
+        if (typeof window.showSaveFilePicker === 'function') {
+          try {
+            const h = await window.showSaveFilePicker(Object.assign({ suggestedName: filename }, JSON_PICKER));
+            const w = await h.createWritable();
+            await w.write(text);
+            await w.close();
+            return { ok: true, status: 'written', name: h.name };
+          } catch (e) {
+            if (e && e.name === 'AbortError') return { ok: false, code: 'declined' };
+            // 保存画面を出せなかったときは、ふつうのダウンロードにする
+          }
+        }
+        try {
+          const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+          const a = document.createElement('a');
+          a.href = url; a.download = filename;
+          document.body.append(a); a.click(); a.remove();
+          setTimeout(() => URL.revokeObjectURL(url), 1500);
+          return { ok: true, status: 'downloaded' };
+        } catch (e) { return { ok: false, code: 'fallback' }; }
+      }
+      if (this.downloads) {
+        try {
+          const r = await this.downloads.save({ filename, data: text });
+          return { ok: true, status: (r && r.status) || 'saved' };
+        } catch (e) {
+          const c = e && e.code;
+          if (c === 'declined' || c === 'rate_limited') return { ok: false, code: c };
+        }
+      }
+      return { ok: false, code: 'fallback' };
+    },
+  };
+
+  /** 小さな値の保存（PCファイルの場所を覚えておくため） */
+  const KV = {
+    dbp: null,
+    open() {
+      if (!this.dbp) {
+        this.dbp = new Promise((res, rej) => {
+          try {
+            const r = indexedDB.open('todo-app', 1);
+            r.onupgradeneeded = () => r.result.createObjectStore('kv');
+            r.onsuccess = () => res(r.result);
+            r.onerror = () => rej(r.error);
+          } catch (e) { rej(e); }
+        });
+      }
+      return this.dbp;
+    },
+    async run(mode, fn) {
+      try {
+        const db = await this.open();
+        return await new Promise((res) => {
+          const tx = db.transaction('kv', mode);
+          const req = fn(tx.objectStore('kv'));
+          tx.oncomplete = () => res(req && 'result' in req ? req.result : null);
+          tx.onerror = tx.onabort = () => res(null);
+        });
+      } catch (e) { return null; }
+    },
+    get(k) { return this.run('readonly', (s) => s.get(k)); },
+    set(k, v) { return this.run('readwrite', (s) => s.put(v, k)); },
+    del(k) { return this.run('readwrite', (s) => s.delete(k)); },
+  };
+
+  /**
+   * PCファイルへの自動保存（Chrome・Edge でこのHTMLファイルを直接開いたときだけ使える）
+   * state: 'off' | 'connected' | 'wait'（再開の許可待ち） | 'error'
+   */
+  class FileBackup extends Emitter {
+    constructor() { super(); this.handle = null; this.state = 'off'; this.name = ''; this.savedAt = null; this.timer = null; this.writing = false; this.pending = null; }
+    get supported() { return Platform.standalone && typeof window.showSaveFilePicker === 'function'; }
+    async restore() {
+      if (!this.supported) return;
+      const h = await KV.get('backup');
+      if (!h || typeof h.createWritable !== 'function') return;
+      this.handle = h; this.name = h.name;
+      let p = 'prompt';
+      try { p = await h.queryPermission({ mode: 'readwrite' }); } catch (e) { p = 'prompt'; }
+      this.state = p === 'granted' ? 'connected' : 'wait';
+      this.emit();
+    }
+    async connect(text) {
+      const h = await window.showSaveFilePicker(Object.assign({ suggestedName: 'ToDo_Backup.json' }, JSON_PICKER));
+      this.handle = h; this.name = h.name; this.state = 'connected';
+      await KV.set('backup', h);
+      await this.write(text);
+    }
+    async resume(text) {
+      if (!this.handle) return;
+      let p = 'denied';
+      try { p = await this.handle.requestPermission({ mode: 'readwrite' }); } catch (e) { p = 'denied'; }
+      if (p === 'granted') { this.state = 'connected'; await this.write(text); }
+      else { this.state = 'wait'; this.emit(); }
+    }
+    async disconnect() {
+      clearTimeout(this.timer);
+      this.handle = null; this.state = 'off'; this.name = ''; this.savedAt = null;
+      await KV.del('backup');
+      this.emit();
+    }
+    schedule(getText) {
+      if (this.state !== 'connected') return;
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => this.write(getText()), 800);
+    }
+    async write(text) {
+      if (!this.handle) return;
+      if (this.writing) { this.pending = text; return; }
+      this.writing = true;
+      try {
+        const w = await this.handle.createWritable();
+        await w.write(text);
+        await w.close();
+        this.savedAt = new Date(); this.state = 'connected';
+      } catch (e) {
+        this.state = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'wait' : 'error';
+      } finally { this.writing = false; }
+      this.emit();
+      if (this.pending != null) { const t = this.pending; this.pending = null; this.write(t); }
+    }
+  }
+
+
+  /* =========================================================
+   * View
+   * ======================================================= */
+  const ICON = {
+    edit: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M12.8 4.2l3 3L7.5 15.5 4 16l.5-3.5z"/><path d="M11.3 5.7l3 3"/></svg>',
+    del: '<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M5.8 6l.8 10h6.8l.8-10"/></svg>',
+    check: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3.5 8.5l3 3 6-7"/></svg>',
+    flag: '<svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 1h1v10h-1zM3.5 1.5h6.5L8.4 4 10 6.5H3.5z"/></svg>',
+    target: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6"/><circle cx="6" cy="6" r="1.6"/></svg>',
+    repeat: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.5A5 5 0 0 1 12.2 4M13 9.5A5 5 0 0 1 3.8 12M12.5 1.5V4.3H9.7M3.5 14.5v-2.8h2.8"/></svg>',
+  };
+  function h(tag, cls, text) {
+    const e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  /** type="button" のボタン。act を渡すとカードやタグ一覧の操作の印（data-act）を付ける */
+  function button(text, cls, act) {
+    const b = h('button', cls, text);
+    b.type = 'button';
+    if (act) b.dataset.act = act;
+    return b;
+  }
+
+  /** ダイアログの共通部分（showModal の無いブラウザでは open 属性で代用） */
+  class DialogView {
+    constructor(sel) { this.dlg = $(sel); }
+    get isOpen() { return this.dlg.open; }
+    show() { const d = this.dlg; if (typeof d.showModal === 'function') { if (!d.open) d.showModal(); } else d.setAttribute('open', ''); }
+    close() { const d = this.dlg; if (typeof d.close === 'function') { if (d.open) d.close(); } else d.removeAttribute('open'); }
+    /** 背景（ダイアログの外側）のクリックで閉じる */
+    closeOnBackdrop() { this.dlg.addEventListener('click', (e) => { if (e.target === this.dlg) this.close(); }); }
+    /** 押すと閉じるボタン（× や「閉じる」「キャンセル」） */
+    closeOn(...sels) { sels.forEach((s) => $(s).addEventListener('click', () => this.close())); }
+  }
+
+  /** タグ名から決まる色（同じ名前はいつも同じ色） */
+  function tagColor(name) {
+    let x = 0;
+    for (const ch of name) x = (x * 31 + ch.codePointAt(0)) >>> 0;
+    return 'tc-' + (x % 8);
+  }
+  /** タグのチップ（removable なら × ボタンつき） */
+  function tagChip(name, removable) {
+    const s = h('span', 'tag ' + tagColor(name));
+    s.append(h('span', 'tn', name));
+    if (removable) {
+      const b = button('×', null, 'untag');
+      b.dataset.tag = name;
+      b.setAttribute('aria-label', `タグ「${name}」を外す`);
+      s.append(b);
+    }
+    return s;
+  }
+
+  /** タスクカードの描画（タイムラインとカレンダーの日別一覧で共用） */
+  const TaskCard = {
+    dateChip(kind, s, done) {
+      const b = BASIS[kind];
+      const chip = h('span', `dchip ${kind}` + (s ? '' : ' unset'));
+      const ic = h('span', 'dc-ic'); ic.innerHTML = kind === 'due' ? ICON.flag : ICON.target;
+      chip.append(ic, h('span', 'dc-k', b.chip), h('span', 'dc-v', s ? DateUtil.fmtShort(s) : '未設定'));
+      if (s && !done) {
+        const d = DateUtil.diffDays(s);
+        const st = Task.dateState(s);
+        chip.append(h('span', 'rel' + (st ? ' ' + st : ''), d < 0 ? `${-d}日超過` : d === 0 ? '今日' : `あと${d}日`));
+      }
+      return chip;
+    },
+    card(t, prefix) {
+      const u = Task.urgency(t);
+      const art = h('article', 'card' + (t.done ? ' is-done' : '') + (u === 'overdue' ? ' is-over' : u === 'today' ? ' is-today' : ''));
+      art.dataset.id = t.id;
+
+      const lab = h('label', 'check');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.id = `${prefix}-done-${t.id}`; cb.checked = t.done; cb.dataset.act = 'toggle';
+      cb.setAttribute('aria-label', t.done ? `「${t.title}」を未完了に戻す` : `「${t.title}」を完了にする`);
+      const box = h('span', 'box'); box.innerHTML = ICON.check;
+      lab.append(cb, box);
+
+      const main = h('div', 'card-main');
+      const head = h('div', 'card-head');
+      const title = button(t.title, 'card-title', 'edit');
+      title.id = `${prefix}-title-${t.id}`; title.title = 'クリックで編集';
+      const pri = h('span', 'pri p-' + t.priority, PRIORITY[t.priority].label);
+      pri.setAttribute('role', 'img'); pri.setAttribute('aria-label', '優先度 ' + PRIORITY[t.priority].label); pri.title = '優先度 ' + PRIORITY[t.priority].label;
+      head.append(title, pri);
+      t.tags.forEach((n) => head.append(tagChip(n, false)));
+      main.append(head);
+
+      const dates = h('div', 'card-dates');
+      dates.append(this.dateChip('due', t.dueDate, t.done), this.dateChip('target', t.targetDate, t.done));
+      main.append(dates);
+
+      if (t.repeat) {
+        const ex = h('div', 'card-extra');
+        const rc = h('span', 'repeat-chip'); rc.innerHTML = ICON.repeat; rc.append(Task.repeatLabel(t.repeat));
+        ex.append(rc); main.append(ex);
+      }
+
+      const ml = h('label', 'sr', `「${t.title}」のメモ`); ml.htmlFor = `${prefix}-memo-${t.id}`;
+      const memo = document.createElement('textarea');
+      memo.className = 'memo' + (t.memo.trim() ? ' has-text' : '');
+      memo.id = `${prefix}-memo-${t.id}`; memo.dataset.act = 'memo'; memo.maxLength = LIMIT.memo;
+      memo.placeholder = 'メモ（進捗状況・担当など）';
+      memo.rows = Math.min(8, Math.max(1, t.memo.split('\n').length));
+      memo.defaultValue = t.memo;
+
+      const side = h('div', 'card-side');
+      if (t.done) side.append(h('span', 'done-pill', '完了'));
+      const acts = h('div', 'card-acts');
+      const eb = button(null, 'icon-btn', 'edit'); eb.id = `${prefix}-edit-${t.id}`;
+      eb.setAttribute('aria-label', `「${t.title}」を編集`); eb.title = '編集'; eb.innerHTML = ICON.edit;
+      const db = button(null, 'icon-btn del', 'delete'); db.id = `${prefix}-del-${t.id}`;
+      db.setAttribute('aria-label', `「${t.title}」を削除`); db.title = '削除'; db.innerHTML = ICON.del;
+      acts.append(eb, db);
+      side.append(acts);
+
+      art.append(lab, main, side, ml, memo);   // メモはカードの幅いっぱいに置く
+      return art;
+    },
+    badge(t, basis) {
+      const b = BASIS[basis]; const s = t[b.field];
+      const st = t.done ? 'done' : (s ? Task.dateState(s) : '');
+      const el = h('div', 'tl-badge' + (basis === 'target' ? ' is-target' : '') + (st ? ' st-' + st : '') + (s ? '' : ' is-unset'));
+      el.setAttribute('aria-hidden', 'true');
+      const k = h('span', 'tb-k'); k.innerHTML = basis === 'due' ? ICON.flag : ICON.target; k.append(b.short);
+      el.append(k, h('span', 'tb-d', s ? DateUtil.fmtMD(s) : '—'), h('span', 'tb-w', s ? WEEKDAYS[DateUtil.parse(s).getDay()] : '未設定'));
+      return el;
+    },
+    row(t, basis) {
+      const li = h('li', 'tl-row');
+      li.append(this.badge(t, basis), this.card(t, 'tl'));
+      return li;
+    },
+  };
+
+  /** カードのメモ欄か */
+  const isMemo = (el) => !!(el && el.classList && el.classList.contains('memo'));
+
+  /** カードの操作（完了・編集・削除・メモ）を1か所で受け取る */
+  function bindCardEvents(root, { onAction, onMemo }) {
+    root.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-act]');
+      if (!b || !root.contains(b) || b.dataset.act === 'toggle' || b.dataset.act === 'memo') return;
+      const host = b.closest('[data-id]');
+      if (host) onAction(b.dataset.act, host.dataset.id);
+    });
+    root.addEventListener('change', (e) => {
+      const cb = e.target;
+      if (!cb.matches || !cb.matches('input[data-act="toggle"]')) return;
+      const host = cb.closest('[data-id]');
+      if (host) onAction('toggle', host.dataset.id);
+    });
+    root.addEventListener('input', (e) => {
+      const m = e.target;
+      if (!m.matches || !m.matches('textarea.memo')) return;
+      m.classList.toggle('has-text', !!m.value.trim());
+      if (!CSS.supports || !CSS.supports('field-sizing', 'content')) { m.style.height = 'auto'; m.style.height = m.scrollHeight + 2 + 'px'; }
+    });
+    root.addEventListener('keydown', (e) => {
+      const m = e.target;
+      if (!m.matches || !m.matches('textarea.memo')) return;
+      if (e.key === 'Escape') { e.preventDefault(); m.value = m.defaultValue; m.blur(); }
+      else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); m.blur(); }
+    });
+    root.addEventListener('focusout', (e) => {
+      const m = e.target;
+      if (!m.matches || !m.matches('textarea.memo')) return;
+      const host = m.closest('[data-id]');
+      if (host) onMemo(host.dataset.id, m.value);
+    });
+  }
+
+  class PanelView {
+    constructor() {
+      this.root = $('#panel');
+      this.progNum = $('#prog-num'); this.progPct = $('#prog-pct'); this.progBar = $('#prog-bar');
+      this.add = $('#btn-add'); this.more = $('#btn-more'); this.menu = $('#more-menu');
+      this.pill = $('#save-pill'); this.note = $('#save-note');
+      this.basisLabel = $('#basis-label'); this.tagBox = $('#tag-filter');
+      this.segs = $$('.seg button', this.root);
+      this.tagSig = null; this.pillSig = null;
+    }
+    keyOf(b) { return ['layout', 'status', 'basis', 'pri'].find((k) => k in b.dataset); }
+    cmd(name) { return $(`[data-cmd="${name}"]`, this.menu); }
+    bind({ onAdd, onCommand, onSet, onTag, onResumeBackup }) {
+      this.add.addEventListener('click', onAdd);
+      this.more.addEventListener('click', () => (this.menu.hidden ? this.openMenu() : this.closeMenu()));
+      this.menu.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-cmd]');
+        if (!b || b.disabled) return;
+        this.closeMenu();
+        onCommand(b.dataset.cmd);
+      });
+      this.menu.addEventListener('keydown', (e) => {
+        const items = $$('[data-cmd]', this.menu).filter((b) => !b.hidden && !b.disabled);
+        const i = items.indexOf(document.activeElement);
+        if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
+        else if (e.key === 'Escape') { e.preventDefault(); this.closeMenu(true); }
+        else if (e.key === 'Tab') this.closeMenu();
+      });
+      document.addEventListener('click', (e) => { if (!this.menu.hidden && !e.target.closest('.menu-wrap')) this.closeMenu(); });
+      this.segs.forEach((b) => b.addEventListener('click', () => { const k = this.keyOf(b); onSet({ [k]: b.dataset[k] }); }));
+      this.tagBox.addEventListener('click', (e) => { const b = e.target.closest('[data-tag]'); if (b) onTag(b.dataset.tag); });
+      this.pill.addEventListener('click', (e) => { if (e.target.closest('[data-resume]')) onResumeBackup(); });
+    }
+    openMenu() {
+      this.menu.hidden = false; this.more.setAttribute('aria-expanded', 'true');
+      const first = $$('[data-cmd]', this.menu).find((b) => !b.hidden && !b.disabled);
+      if (first) first.focus();
+    }
+    closeMenu(focusButton) {
+      if (this.menu.hidden) return;
+      this.menu.hidden = true; this.more.setAttribute('aria-expanded', 'false');
+      if (focusButton) this.more.focus();
+    }
+    render({ loaded, progress, ui, tags, storage, backup, canBackup, trashCount }) {
+      this.add.disabled = this.more.disabled = !loaded;
+      const { done, total } = progress;
+      const pct = total ? Math.round((done / total) * 100) : 0;
+      this.progNum.textContent = loaded ? `${done} / ${total}` : '– / –';
+      this.progPct.textContent = loaded ? `${pct}%` : '';
+      this.progBar.style.width = (loaded ? pct : 0) + '%';
+      this.segs.forEach((b) => { const k = this.keyOf(b); b.setAttribute('aria-pressed', String(ui[k] === b.dataset[k])); });
+      this.basisLabel.textContent = ui.layout === 'calendar' ? '表示日付' : '並び替え';
+
+      const sig = JSON.stringify([loaded, tags, ui.tag]);
+      if (sig !== this.tagSig) {
+        this.tagSig = sig;
+        this.tagBox.textContent = '';
+        if (loaded && tags.length) {
+          tags.forEach(({ name, count }) => {
+            const b = button(null, 'tchip ' + tagColor(name));
+            b.dataset.tag = name; b.setAttribute('aria-pressed', String(ui.tag === name));
+            b.title = ui.tag === name ? 'もう一度押すと解除' : `「${name}」のタスクだけを表示`;
+            b.append(h('span', 'tn', name), h('span', 'tcount', String(count)));
+            this.tagBox.append(b);
+          });
+        } else if (loaded) this.tagBox.append(h('span', 'tag-empty', 'タグはまだありません（タスク追加画面で作成できます）'));
+      }
+
+      this.cmd('export').disabled = !total;
+      $('#trash-label', this.menu).textContent = trashCount ? `ゴミ箱（${trashCount}件）` : 'ゴミ箱';
+      this.cmd('pc-connect').hidden = !(canBackup && backup.state === 'off');
+      this.cmd('pc-disconnect').hidden = backup.state === 'off';
+
+      this.renderPill(backup);
+      let note = '', warn = false;
+      if (!loaded) note = '読み込み中…';
+      else if (storage.kind === 'cloud') note = '自動保存：オン（あなたのアカウントに保存されます。ほかの人には見えません。別の環境へ移す場合はエクスポート／インポートを使用）';
+      else if (!storage.ok) { note = '自動保存：オフ（このブラウザでは保存できない設定です。閉じる前に「その他」からエクスポートしてください）'; warn = true; }
+      else if (backup.state === 'connected') note = `変更はこのブラウザ内と、PCファイル「${backup.name}」の両方に自動保存されます。`;
+      else note = '自動保存：オン（このブラウザ内に保存されます。別のPC・ブラウザへ移す場合はエクスポート／インポートを使用）';
+      this.note.textContent = note;
+      this.note.classList.toggle('is-warn', warn);
+    }
+    renderPill(b) {
+      const sig = [b.state, b.name, b.savedAt ? b.savedAt.getTime() : 0].join('|');
+      if (sig === this.pillSig) return;
+      this.pillSig = sig;
+      const p = this.pill;
+      p.textContent = '';
+      if (b.state === 'off') { p.hidden = true; return; }
+      p.hidden = false;
+      p.dataset.state = b.state;
+      const label = b.state === 'connected' ? 'PCに自動保存中' : b.state === 'wait' ? 'PCファイル 一時停止中' : 'PCファイルに保存できません';
+      p.append(h('span', 'sp-dot'), h('span', null, label), h('span', 'sp-sep'), h('span', 'sp-file', b.name), h('span', 'sp-sep'));
+      if (b.state === 'connected') p.append(h('span', 'sp-time', b.savedAt ? `${DateUtil.fmtTime(b.savedAt)} 保存済み` : '接続済み'));
+      else {
+        const btn = button(b.state === 'wait' ? '保存を再開' : 'もう一度試す', 'link-btn');
+        btn.dataset.resume = '1';
+        p.append(btn);
+      }
+    }
+  }
+
+  class PlaceholderView {
+    constructor() { this.loading = $('#loading'); this.first = $('#empty-first'); this.filtered = $('#empty-filter'); this.text = $('#empty-filter-text'); }
+    bind({ onAdd, onImport, onReset }) {
+      $('#ef-add').addEventListener('click', onAdd);
+      $('#ef-import').addEventListener('click', onImport);
+      $('#ef-reset').addEventListener('click', onReset);
+    }
+    render({ phase, message }) {
+      this.loading.hidden = phase !== 'loading';
+      this.first.hidden = phase !== 'first';
+      this.filtered.hidden = phase !== 'filtered';
+      if (message) this.text.textContent = message;
+    }
+  }
+
+  class TimelineView {
+    constructor() { this.root = $('#timeline'); }
+    bind(handlers) { bindCardEvents(this.root, handlers); }
+    render({ visible, groups, basis }) {
+      this.root.hidden = !visible;
+      this.root.textContent = '';
+      if (!visible) return;
+      const frag = document.createDocumentFragment();
+      groups.forEach((g) => {
+        const sec = h('section', 'tl-month');
+        sec.setAttribute('aria-label', g.label);
+        sec.append(h('h3', 'tl-mlabel', g.label));
+        const ol = h('ol', 'tl-list');
+        g.items.forEach((t) => ol.append(TaskCard.row(t, basis)));
+        sec.append(ol);
+        frag.append(sec);
+      });
+      this.root.append(frag);
+    }
+  }
+
+  class CalendarView {
+    constructor() {
+      this.root = $('#cal-view'); this.month = $('#cal-month'); this.basis = $('#cal-basis'); this.grid = $('#cal-grid');
+      this.undated = $('#cal-undated'); this.undatedText = $('#cal-undated-text');
+      this.dayTitle = $('#day-title'); this.dayHol = $('#day-hol'); this.dayCount = $('#day-count');
+      this.dayList = $('#day-list'); this.dayEmpty = $('#day-empty');
+    }
+    bind({ onNav, onSelect, onOpen, onAddOnDate, onAction, onMemo }) {
+      $('#cal-prev').addEventListener('click', () => onNav(-1));
+      $('#cal-next').addEventListener('click', () => onNav(1));
+      $('#cal-today').addEventListener('click', () => onNav(0));
+      this.grid.addEventListener('click', (e) => {
+        const pill = e.target.closest('.cal-pill');
+        if (pill) { onOpen(pill.dataset.id); return; }
+        const cell = e.target.closest('.cal-cell');
+        if (cell) onSelect(cell.dataset.date);
+      });
+      this.grid.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.cal-pill')) return;
+        const cell = e.target.closest('.cal-cell');
+        if (cell) onAddOnDate(cell.dataset.date);
+      });
+      this.grid.addEventListener('keydown', (e) => {
+        const btn = e.target.closest('.cal-date'); if (!btn) return;
+        const step = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+        if (step === undefined) return;
+        e.preventDefault();
+        onSelect(DateUtil.addDays(step, btn.closest('.cal-cell').dataset.date), { focus: true });
+      });
+      bindCardEvents(this.dayList, { onAction, onMemo });
+    }
+    render(vm) {
+      this.root.hidden = !vm.visible;
+      if (!vm.visible) { this.grid.textContent = ''; this.dayList.textContent = ''; return; }
+      this.month.textContent = vm.monthLabel;
+      this.basis.textContent = vm.basisLabel;
+      this.basis.classList.toggle('is-target', vm.basis === 'target');
+
+      const frag = document.createDocumentFragment();
+      vm.cells.forEach((c) => frag.append(this.cell(c, vm)));
+      this.grid.textContent = '';
+      this.grid.append(frag);
+
+      this.undated.hidden = !vm.undated;
+      this.undatedText.textContent = `${vm.basisLabel}が未設定のタスクが${vm.undated}件あります（カレンダーには載りません）。`;
+
+      this.dayTitle.textContent = `${vm.selectedLabel}が${vm.basisLabel}のタスク`;
+      this.dayHol.textContent = vm.selectedHoliday; this.dayHol.hidden = !vm.selectedHoliday;
+      this.dayCount.textContent = `${vm.dayTasks.length}件`;
+      this.dayList.textContent = '';
+      if (vm.dayTasks.length) {
+        const rows = document.createDocumentFragment();
+        vm.dayTasks.forEach((t) => { const li = h('li'); li.append(TaskCard.card(t, 'd')); rows.append(li); });
+        this.dayList.append(rows);
+        this.dayList.hidden = false; this.dayEmpty.hidden = true;
+      } else {
+        this.dayList.hidden = true; this.dayEmpty.hidden = false;
+        this.dayEmpty.textContent = '該当するタスクはありません。カレンダーの日付をダブルクリックすると、その日のタスクを追加できます。';
+      }
+      if (vm.focus) { const b = $('.cal-cell.is-selected .cal-date', this.grid); if (b) b.focus(); }
+    }
+    cell(c, vm) {
+      const cls = ['cal-cell'];
+      if (c.out) cls.push('is-out');
+      if (c.today) cls.push('is-today');
+      if (c.selected) cls.push('is-selected');
+      if (c.dow === 0) cls.push('is-sun');
+      if (c.dow === 6) cls.push('is-sat');
+      if (c.holiday) cls.push('is-hol');
+      const cell = h('div', cls.join(' '));
+      cell.dataset.date = c.date;
+
+      const top = h('div', 'cal-top-row');
+      const btn = button(String(c.day), 'cal-date');
+      btn.id = 'cal-' + c.date; btn.tabIndex = c.selected ? 0 : -1;
+      btn.setAttribute('aria-pressed', String(c.selected));
+      btn.setAttribute('aria-label', `${c.label}${c.holiday ? ' ' + c.holiday : ''}、${vm.basisLabel}のタスク${c.tasks.length}件`);
+      top.append(btn);
+      if (c.holiday) top.append(h('span', 'cal-hol', c.holiday));
+      cell.append(top);
+
+      if (c.tasks.length) {
+        const pills = h('div', 'cal-pills');
+        const max = 5;
+        c.tasks.slice(0, max).forEach((t) => {
+          const u = Task.urgency(t);
+          const p = button(t.title, 'cal-pill' + (t.done ? ' is-done' : u ? ' u-' + u : ''));
+          p.tabIndex = -1; p.dataset.id = t.id; p.title = t.title;
+          pills.append(p);
+        });
+        if (c.tasks.length > max) pills.append(h('span', 'cal-more', `+${c.tasks.length - max}件`));
+        cell.append(pills);
+      }
+      return cell;
+    }
+  }
+
+  class TaskDialogView extends DialogView {
+    constructor() {
+      super('#dlg-task');
+      this.form = $('#task-form'); this.heading = $('#dlg-task-title');
+      this.title = $('#f-title'); this.err = $('#f-title-err'); this.memo = $('#f-memo');
+      this.due = $('#f-due'); this.target = $('#f-target'); this.pri = $('#f-pri'); this.warn = $('#f-date-warn');
+      this.repeat = $('#f-repeat'); this.weekday = $('#f-weekday');
+      this.tagPick = $('#f-tag-pick'); this.tagNew = $('#f-tag-new'); this.tagBox = $('#f-tags');
+      this.stamp = $('#f-stamp'); this.kbd = $('#f-kbd');
+      this.del = $('#f-delete'); this.save = $('#f-save');
+      this.sel = []; this.weekdayTouched = false; this.autoDue = false;
+    }
+    bind({ onSubmit, onDelete, onClose }) {
+      this.form.addEventListener('submit', (e) => { e.preventDefault(); onSubmit(this.values()); });
+      this.closeOn('#f-cancel', '#f-close');
+      this.del.addEventListener('click', onDelete);
+      this.dlg.addEventListener('close', onClose);
+      this.title.addEventListener('input', () => { if (this.title.value.trim()) this.err.hidden = true; });
+      [this.due, this.target].forEach((i) => i.addEventListener('input', () => this.checkDates()));
+      this.due.addEventListener('input', () => {
+        this.autoDue = false;
+        const d = DateUtil.parse(this.due.value);
+        if (d && !this.weekdayTouched) this.weekday.value = String(d.getDay());
+      });
+      this.weekday.addEventListener('change', () => {
+        this.weekdayTouched = true;
+        if (this.autoDue) this.fillDue();
+      });
+      this.repeat.addEventListener('change', () => {
+        this.weekday.disabled = !this.repeat.checked;
+        // 締め切り日が空のまま繰り返しにしたら、締め切り日を自動で入れる。チェックを外したら、自動で入れた日は消す
+        if (this.repeat.checked && !this.due.value) this.fillDue();
+        else if (!this.repeat.checked && this.autoDue) { this.due.value = ''; this.autoDue = false; this.checkDates(); }
+      });
+      this.tagPick.addEventListener('change', () => { if (this.tagPick.value) this.addTags([this.tagPick.value]); this.tagPick.value = ''; });
+      this.tagNew.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' || e.isComposing || !this.tagNew.value.trim()) return;
+        e.preventDefault();
+        this.addTags(Task.splitTagText(this.tagNew.value));
+        this.tagNew.value = '';
+      });
+      this.tagBox.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-act="untag"]'); if (!b) return;
+        this.sel = this.sel.filter((n) => n !== b.dataset.tag);
+        this.renderTags();
+      });
+    }
+    open({ task, preset, tags }) {
+      const t = task || null; const p = preset || {};
+      this.heading.textContent = t ? 'タスクを編集' : 'タスクを追加';
+      this.title.value = t ? t.title : (p.title || '');
+      this.memo.value = t ? t.memo : (p.memo || '');
+      this.due.value = t ? t.dueDate : (p.dueDate || '');
+      this.target.value = t ? t.targetDate : (p.targetDate || '');
+      this.pri.value = (t ? t.priority : p.priority) || 'medium';
+      const rep = t ? t.repeat : null;
+      this.repeat.checked = !!rep; this.weekday.disabled = !rep;
+      const dd = DateUtil.parse(this.due.value);
+      this.weekday.value = String(rep ? rep.weekday : dd ? dd.getDay() : 1);
+      this.weekdayTouched = !!rep;
+      this.autoDue = false;
+      this.sel = (t ? t.tags : (p.tags || [])).slice();
+      this.tagPick.textContent = '';
+      this.tagPick.append(new Option('既存タグから選択...', ''));
+      (tags || []).forEach((n) => this.tagPick.append(new Option(n, n)));
+      this.tagNew.value = '';
+      this.renderTags();
+      this.err.hidden = true;
+      this.del.hidden = !t;
+      this.save.textContent = t ? '保存する' : '追加する';
+      this.kbd.textContent = t ? 'Enter で保存 ／ Esc で閉じる' : 'Enter で追加 ／ Esc で閉じる';
+      if (t) {
+        this.stamp.textContent = `作成 ${DateUtil.fmtStamp(t.createdAt)}　更新 ${DateUtil.fmtStamp(t.updatedAt)}` + (t.done && t.completedAt ? `　完了 ${DateUtil.fmtStamp(t.completedAt)}` : '');
+        this.stamp.hidden = false;
+      } else this.stamp.hidden = true;
+      this.checkDates();
+      this.show();
+      setTimeout(() => { this.title.focus(); const n = this.title.value.length; if (n) this.title.setSelectionRange(n, n); }, 0);
+    }
+    values() {
+      return {
+        title: this.title.value.trim(),
+        memo: this.memo.value,
+        dueDate: this.due.value,
+        targetDate: this.target.value,
+        priority: this.pri.value,
+        repeat: this.repeat.checked ? { freq: 'weekly', weekday: Number(this.weekday.value) } : null,
+        tags: Task.cleanTags(this.sel.concat(Task.splitTagText(this.tagNew.value))),
+      };
+    }
+    addTags(names) { this.sel = Task.cleanTags(this.sel.concat(names)); this.renderTags(); }
+    renderTags() {
+      this.tagBox.textContent = '';
+      this.sel.forEach((n) => this.tagBox.append(tagChip(n, true)));
+      this.tagBox.hidden = !this.sel.length;
+    }
+    showTitleError() { this.err.hidden = false; this.title.focus(); }
+    /** 締め切り日に、実施曜日の直近の日（今日を含む）を入れる */
+    fillDue() {
+      this.due.value = DateUtil.nextWeekday(Number(this.weekday.value), null, true);
+      this.autoDue = true;
+      this.checkDates();
+    }
+    checkDates() { const d = this.due.value, g = this.target.value; this.warn.hidden = !(d && g && g > d); }
+  }
+
+  class ImportDialogView extends DialogView {
+    constructor() {
+      super('#dlg-import');
+      this.step1 = $('#imp-step1'); this.step2 = $('#imp-step2');
+      this.err = $('#imp-err'); this.text = $('#imp-text'); this.file = $('#imp-file'); this.drop = $('#imp-drop');
+      this.paste = $('#imp-paste'); this.go = $('#imp-go'); this.back = $('#imp-back'); this.warn = $('#imp-replace-warn');
+    }
+    get mode() { return $('#imp-replace').checked ? 'replace' : 'merge'; }
+    bind({ onFile, onText, onApply, onBack, onModeChange, onPageDrop }) {
+      $('#imp-pick').addEventListener('click', () => this.file.click());
+      this.file.addEventListener('change', () => {
+        const f = this.file.files && this.file.files[0];
+        this.file.value = '';
+        if (f) onFile(f);
+      });
+      $('#imp-parse').addEventListener('click', () => onText(this.text.value));
+      ['dragenter', 'dragover'].forEach((ev) => this.drop.addEventListener(ev, (e) => { e.preventDefault(); this.drop.classList.add('is-over'); }));
+      ['dragleave', 'drop'].forEach((ev) => this.drop.addEventListener(ev, (e) => { e.preventDefault(); this.drop.classList.remove('is-over'); }));
+      this.drop.addEventListener('drop', (e) => {
+        e.stopPropagation();
+        const f = e.dataTransfer && e.dataTransfer.files[0];
+        if (f) onFile(f);
+      });
+      $('#imp-merge').addEventListener('change', onModeChange);
+      $('#imp-replace').addEventListener('change', onModeChange);
+      this.back.addEventListener('click', onBack);
+      this.closeOn('#imp-cancel');
+      this.go.addEventListener('click', onApply);
+      this.closeOnBackdrop();
+      window.addEventListener('dragover', (e) => e.preventDefault());
+      window.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        if (f) onPageDrop(f);
+      });
+    }
+    open() { this.reset(); this.show(); }
+    reset() {
+      this.step1.hidden = false; this.step2.hidden = true; this.err.hidden = true;
+      this.text.value = ''; this.paste.open = false;
+      this.go.disabled = true; this.back.hidden = true;
+      $('#imp-merge').checked = true; this.warn.hidden = true;
+    }
+    showError(msg) { this.err.textContent = msg; this.err.hidden = false; }
+    showPreview({ name, tasks, skipped, dup, newTags }) {
+      this.err.hidden = true;
+      $('#imp-file-name').textContent = name;
+      $('#imp-summary').textContent = `${tasks.length}件のタスクを読み込めます（新規 ${tasks.length - dup}件・同じIDの既存タスク ${dup}件）`;
+      const sk = $('#imp-skip');
+      sk.hidden = !skipped; sk.textContent = skipped ? `タスク名のない${skipped}件は読み込みません。` : '';
+      const nt = $('#imp-tags');
+      nt.hidden = !newTags.length;
+      nt.textContent = newTags.length ? `新しく追加されるタグ：${newTags.slice(0, 6).join('、')}${newTags.length > 6 ? ` ほか${newTags.length - 6}件` : ''}` : '';
+      const ul = $('#imp-preview'); ul.textContent = '';
+      tasks.slice(0, 5).forEach((t) => {
+        const li = h('li');
+        li.append(h('span', 'pri p-' + t.priority, PRIORITY[t.priority].label), h('span', 't', t.title));
+        if (t.dueDate) li.append(h('span', 'd', '締切 ' + DateUtil.fmtShort(t.dueDate)));
+        ul.append(li);
+      });
+      if (tasks.length > 5) { const li = h('li'); li.append(h('span', 'hint', `ほか ${tasks.length - 5}件`)); ul.append(li); }
+      this.step1.hidden = true; this.step2.hidden = false;
+      this.go.disabled = false; this.back.hidden = false;
+    }
+    setWarning(text) { this.warn.textContent = text; this.warn.hidden = !text; }
+  }
+
+  class ExportDialogView extends DialogView {
+    constructor() { super('#dlg-export'); this.text = $('#exp-text'); this.name = $('#exp-name'); this.copy = $('#exp-copy'); }
+    bind() {
+      this.closeOn('#exp-close');
+      this.closeOnBackdrop();
+      this.copy.addEventListener('click', () => {
+        const fallback = () => { this.text.focus(); this.text.select(); this.copy.textContent = '選択しました。コピーしてください'; };
+        try { navigator.clipboard.writeText(this.text.value).then(() => { this.copy.textContent = 'コピーしました'; }, fallback); }
+        catch (e) { fallback(); }
+      });
+    }
+    open(text, filename) { this.text.value = text; this.name.textContent = filename; this.copy.textContent = 'コピー'; this.show(); }
+  }
+
+  /** ゴミ箱。削除したタスクの一覧と、元に戻す・完全に削除する操作 */
+  class TrashDialogView extends DialogView {
+    constructor() {
+      super('#dlg-trash');
+      this.list = $('#trash-list'); this.empty = $('#trash-empty'); this.clear = $('#trash-clear');
+      $('#trash-sub').textContent = `削除したタスクは${TRASH_DAYS}日間ここに残ります。${TRASH_DAYS}日を過ぎると自動で完全に削除されます。`;
+    }
+    bind({ onRestore, onPurge, onClear }) {
+      this.list.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-act]'); if (!b) return;
+        const row = b.closest('[data-id]'); if (!row) return;
+        if (b.dataset.act === 'restore') onRestore(row.dataset.id);
+        else if (b.dataset.act === 'purge') onPurge(row.dataset.id);
+      });
+      this.clear.addEventListener('click', onClear);
+      this.closeOn('#trash-close', '#trash-x');
+      this.closeOnBackdrop();
+    }
+    render({ items }) {
+      this.list.textContent = '';
+      items.forEach(({ id, title, meta }) => {
+        const li = h('li'); li.dataset.id = id;
+        const main = h('div', 'tr-main');
+        main.append(h('span', 'tr-title', title), h('span', 'tr-meta', meta));
+        const acts = h('div', 'tr-acts');
+        const back = button('元に戻す', 'btn small', 'restore'); back.setAttribute('aria-label', `「${title}」を元に戻す`);
+        const del = button('完全に削除', 'btn small danger-text', 'purge'); del.setAttribute('aria-label', `「${title}」を完全に削除`);
+        acts.append(back, del);
+        li.append(main, acts);
+        this.list.append(li);
+      });
+      this.list.hidden = !items.length;
+      this.empty.hidden = !!items.length;
+      this.clear.disabled = !items.length;
+      // 押したボタンが描き直しで消えたら、閉じるボタンへ移す
+      if (this.isOpen && document.activeElement === document.body) $('#trash-close').focus();
+    }
+  }
+
+  /** 確認ダイアログ（ブラウザ標準の confirm はこの画面で使えないため） */
+  class ConfirmDialogView extends DialogView {
+    constructor() { super('#dlg-confirm'); this.title = $('#cf-title'); this.msg = $('#cf-msg'); this.yes = $('#cf-yes'); this.no = $('#cf-no'); this.resolve = null; }
+    bind() {
+      this.yes.addEventListener('click', () => this.finish(true));
+      this.no.addEventListener('click', () => this.finish(false));
+      // Esc などで閉じたときはキャンセル扱い。close は遅れて届くので、次の確認がもう開いていたら無視する
+      this.dlg.addEventListener('close', () => { if (!this.isOpen) this.finish(false); });
+    }
+    ask({ title, message, confirm }) {
+      this.finish(false);
+      this.title.textContent = title; this.msg.textContent = message; this.yes.textContent = confirm;
+      this.show();
+      setTimeout(() => this.no.focus(), 0);
+      return new Promise((r) => { this.resolve = r; });
+    }
+    finish(v) {
+      const r = this.resolve; this.resolve = null;
+      this.close();
+      if (r) r(v);
+    }
+  }
+
+  class ToastView {
+    constructor() { this.el = $('#toast'); this.msg = $('#toast-msg'); this.act = $('#toast-act'); this.timer = null; this.onAction = null; }
+    bind() { this.act.addEventListener('click', () => { const fn = this.onAction; this.hide(); if (fn) fn(); }); }
+    show(msg, opts = {}) {
+      this.msg.textContent = msg;
+      if (opts.action) { this.act.hidden = false; this.act.textContent = opts.action; this.onAction = opts.onAction; }
+      else { this.act.hidden = true; this.onAction = null; }
+      this.el.hidden = false; this.el.classList.remove('is-hiding');
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => this.hide(), opts.action ? 7000 : 3600);
+    }
+    hide() {
+      this.el.classList.add('is-hiding');
+      clearTimeout(this.timer);
+      this.timer = setTimeout(() => { this.el.hidden = true; this.el.classList.remove('is-hiding'); this.onAction = null; }, 200);
+    }
+  }
+
+
+  /* =========================================================
+   * Controller
+   * ======================================================= */
+  class AppController {
+    constructor(models, views, platform, backup) {
+      this.tasks = models.tasks;
+      this.ui = models.ui;
+      this.v = views;
+      this.platform = platform;
+      this.backup = backup;
+      this.editingId = null;
+      this.importDraft = null;
+      this.focusCal = false;
+      this.lastErrAt = 0;
+      this.renderPending = false;
+      this.pointerDown = false;
+      this.deferred = false;
+    }
+
+    start() {
+      this.bindViews();
+      this.tasks.subscribe((e) => this.onTaskEvent(e));
+      this.ui.subscribe(() => this.scheduleRender());
+      this.backup.subscribe(() => this.scheduleRender());
+      this.render();
+      this.connectStorage();
+      this.startClock();
+      window.addEventListener('pagehide', () => this.flushMemo());
+      // クリックの途中で一覧を作り直すと、押したボタンが消えてクリックが失われる。指を離すまで描き直しを待つ
+      document.addEventListener('pointerdown', () => { this.pointerDown = true; }, true);
+      const release = () => { this.pointerDown = false; if (this.renderPending) setTimeout(() => { if (this.renderPending) this.render(); }, 0); };
+      document.addEventListener('pointerup', release, true);
+      document.addEventListener('pointercancel', release, true);
+    }
+
+    /* --- 保存先の接続 --- */
+    async connectStorage() {
+      const env = await this.platform.connect();
+      if (this.platform.standalone) this.backup.restore();
+      if (env.db && env.uid && env.canWrite !== false) {
+        try { this.tasks.attach(new CloudRepository(env.db, env.uid)); return; } catch (e) { /* ブラウザ保存へ */ }
+      }
+      this.tasks.attach(new LocalRepository());
+    }
+    onTaskEvent(e) {
+      if (e.type === 'fatal') {
+        this.tasks.attach(new LocalRepository({ merge: this.tasks.records(), mergeTags: this.tasks.tagNames() }));
+        this.v.toast.show('この画面ではアカウントに保存できないため、このブラウザに保存します。');
+        return;
+      }
+      if (e.type === 'error') { this.showSaveError(e.code); return; }
+      if (e.source === 'local') this.backup.schedule(() => this.tasks.exportJSON());
+      if (e.source === 'remote') this.purgeExpiredTrash();
+      this.scheduleRender();
+    }
+    showSaveError(code) {
+      if (Date.now() - this.lastErrAt < 4000) return;
+      this.lastErrAt = Date.now();
+      if (code === 'quota_exceeded') this.v.toast.show('保存できる件数の上限に達しました。ゴミ箱を空にしてから、もう一度操作してください。');
+      else if (code === 'resource_exhausted') this.v.toast.show('保存が混み合っています。少し待ってから、もう一度操作してください。');
+      else this.v.toast.show('保存できませんでした。通信状況を確認して、もう一度操作してください。');
+    }
+
+    /* --- View の操作をコントローラーの処理へつなぐ --- */
+    bindViews() {
+      const v = this.v;
+      const card = { onAction: (a, id) => this.taskAction(a, id), onMemo: (id, value) => this.saveMemo(id, value) };
+      v.panel.bind({
+        onAdd: () => this.openNew(),
+        onCommand: (c) => this.command(c),
+        onSet: (patch) => this.ui.set(patch),
+        onTag: (name) => this.ui.set({ tag: this.ui.get().tag === name ? '' : name }),
+        onResumeBackup: () => this.resumeBackup(),
+      });
+      v.placeholder.bind({
+        onAdd: () => this.openNew(),
+        onImport: () => this.openImport(),
+        onReset: () => this.ui.set({ status: 'all', pri: '', tag: '' }),
+      });
+      v.timeline.bind(card);
+      v.calendar.bind(Object.assign({
+        onNav: (d) => this.navMonth(d),
+        onSelect: (date, opts) => this.selectDate(date, opts),
+        onOpen: (id) => this.openEdit(id),
+        onAddOnDate: (date) => this.openNewOnDate(date),
+      }, card));
+      v.taskDialog.bind({
+        onSubmit: (f) => this.saveTask(f),
+        onDelete: () => this.deleteEditing(),
+        // close は遅れて届くので、次のタスクの編集がもう始まっていたら消さない
+        onClose: () => { if (!this.v.taskDialog.isOpen) this.editingId = null; },
+      });
+      v.importDialog.bind({
+        onFile: (f) => this.readImportFile(f),
+        onText: (text) => this.loadImportText(text, ''),
+        onApply: () => this.applyImport(),
+        onBack: () => { this.importDraft = null; this.v.importDialog.reset(); },
+        onModeChange: () => this.updateReplaceWarning(),
+        onPageDrop: (f) => this.dropFile(f),
+      });
+      v.exportDialog.bind();
+      v.trashDialog.bind({
+        onRestore: (id) => this.restoreFromTrash(id),
+        onPurge: (id) => this.purgeFromTrash(id),
+        onClear: () => this.emptyTrash(),
+      });
+      v.confirm.bind();
+      v.toast.bind();
+    }
+    command(c) {
+      if (c === 'export') this.exportTasks();
+      else if (c === 'import') this.openImport();
+      else if (c === 'pc-connect') this.connectBackup();
+      else if (c === 'pc-disconnect') this.disconnectBackup();
+      else if (c === 'trash') this.openTrash();
+    }
+
+    /* --- 描画 --- */
+    scheduleRender() {
+      if (this.renderPending) return;
+      this.renderPending = true;
+      const run = () => { if (this.renderPending && !this.pointerDown) this.render(); };
+      requestAnimationFrame(run);
+      setTimeout(run, 120);
+    }
+    render() {
+      this.renderPending = false;
+      const ui = this.ui.get();
+      const storage = this.tasks.storage;
+      const loaded = storage.loaded;
+      const tags = this.tasks.tagList();
+      if (ui.tag && !tags.some((t) => t.name === ui.tag)) ui.tag = '';
+      this.v.panel.render({ loaded, progress: this.tasks.progress(), ui, tags, storage, backup: this.backup, canBackup: this.backup.supported, trashCount: this.tasks.trashed().length });
+      this.renderTrash();
+
+      // メモの入力中は一覧を作り直さない（日本語入力の変換中に壊れないように）。入力が終わったら描き直す
+      const a = document.activeElement;
+      if (isMemo(a) && $('#main').contains(a)) { this.deferred = true; return; }
+      this.deferred = false;
+
+      const activeId = a && a.id && $('#main').contains(a) ? a.id : null;
+      const total = this.tasks.size();
+      let phase = !loaded ? 'loading' : total === 0 ? 'first' : 'ready';
+      const items = phase === 'ready' ? this.tasks.query(ui) : [];
+      const listMode = ui.layout === 'list';
+      if (phase === 'ready' && listMode && !items.length) phase = 'filtered';
+
+      this.v.placeholder.render({ phase, message: this.emptyMessage(ui) });
+      this.v.timeline.render({ visible: phase === 'ready' && listMode, groups: this.buildGroups(items, ui.basis), basis: ui.basis });
+      this.v.calendar.render(phase === 'ready' && !listMode ? this.calendarViewModel(ui, items) : { visible: false });
+      this.focusCal = false;
+
+      if (activeId && document.activeElement !== document.getElementById(activeId)) {
+        const el = document.getElementById(activeId);
+        if (el) el.focus({ preventScroll: true });
+      }
+    }
+    buildGroups(items, basis) {
+      const f = BASIS[basis].field; const year = new Date().getFullYear();
+      const groups = []; let cur = null;
+      items.forEach((t) => {
+        const d = t[f]; const key = d ? d.slice(0, 7) : 'none';
+        if (!cur || cur.key !== key) {
+          let label = '日付未設定';
+          if (d) { const [y, m] = key.split('-').map(Number); label = y === year ? `${m}月` : `${y}年${m}月`; }
+          cur = { key, label, items: [] };
+          groups.push(cur);
+        }
+        cur.items.push(t);
+      });
+      return groups;
+    }
+    calendarViewModel(ui, items) {
+      const basis = BASIS[ui.basis];
+      const [y, m] = ui.month.split('-').map(Number);
+      const first = new Date(y, m - 1, 1);
+      const days = new Date(y, m, 0).getDate();
+      const weeks = Math.ceil((first.getDay() + days) / 7);
+      const start = new Date(y, m - 1, 1 - first.getDay());
+      const byDate = this.tasks.groupByDate(items, basis.field);
+      const today = DateUtil.today();
+      const cells = [];
+      for (let i = 0; i < weeks * 7; i++) {
+        const d = new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
+        const key = DateUtil.ymd(d);
+        cells.push({
+          date: key, day: d.getDate(), dow: d.getDay(), label: DateUtil.fmtLong(key),
+          out: d.getMonth() !== m - 1, today: key === today, selected: key === ui.selected,
+          holiday: JpHoliday.name(key), tasks: byDate.get(key) || [],
+        });
+      }
+      return {
+        visible: true, monthLabel: `${y}年${m}月`, basis: ui.basis, basisLabel: basis.label, cells,
+        undated: items.filter((t) => !t[basis.field]).length,
+        selectedLabel: DateUtil.fmtLong(ui.selected), selectedHoliday: JpHoliday.name(ui.selected),
+        dayTasks: byDate.get(ui.selected) || [], focus: this.focusCal,
+      };
+    }
+    emptyMessage(ui) {
+      const parts = [];
+      if (ui.status !== 'all') parts.push(ui.status === 'open' ? '未完了' : '完了');
+      if (ui.pri) parts.push(`優先度 ${PRIORITY[ui.pri].label}`);
+      if (ui.tag) parts.push(`タグ「${ui.tag}」`);
+      return parts.length ? `${parts.join('・')} で絞り込んでいます。絞り込みを変えるか、解除してください。` : '絞り込みを変えるか、解除してください。';
+    }
+
+    /* --- タスクの操作 --- */
+    taskAction(act, id) {
+      if (act === 'toggle') this.toggleDone(id);
+      else if (act === 'edit') this.openEdit(id);
+      else if (act === 'delete') this.deleteWithUndo([id]);
+    }
+    toggleDone(id) {
+      const next = this.tasks.toggleDone(id);
+      if (next) this.v.toast.show(`毎週のタスクなので、翌週分（${DateUtil.fmtShort(next.dueDate || next.targetDate)}）を作成しました`);
+    }
+    saveMemo(id, value) {
+      const t = this.tasks.get(id);
+      const v = String(value || '').slice(0, LIMIT.memo);
+      if (t && t.memo !== v) this.tasks.put([Task.patch(t, { memo: v })]);
+      if (this.deferred) setTimeout(() => this.scheduleRender(), 0);
+    }
+    flushMemo() {
+      const a = document.activeElement;
+      if (!isMemo(a)) return;
+      const host = a.closest('[data-id]');
+      if (host) this.saveMemo(host.dataset.id, a.value);
+    }
+    presetFromFilters() {
+      const ui = this.ui.get();
+      return { priority: ui.pri || 'medium', tags: ui.tag ? [ui.tag] : [] };
+    }
+    /** 追加のダイアログを開く。表示中の絞り込み（優先度・タグ）を初期値にする */
+    openNew(preset) {
+      if (!this.tasks.loaded) return;
+      this.editingId = null;
+      this.v.taskDialog.open({ task: null, preset: Object.assign(this.presetFromFilters(), preset), tags: this.tasks.tagNames() });
+    }
+    /** カレンダーの日付を、表示中の日付の基準の項目に入れて追加のダイアログを開く */
+    openNewOnDate(date) {
+      this.selectDate(date);
+      this.openNew({ [BASIS[this.ui.get().basis].field]: date });
+    }
+    openEdit(id) {
+      const t = this.tasks.get(id); if (!t) return;
+      this.editingId = id;
+      this.v.taskDialog.open({ task: t, tags: this.tasks.tagNames() });
+    }
+    saveTask(f) {
+      if (!f.title) { this.v.taskDialog.showTitleError(); return; }
+      const fields = Object.assign({}, f);
+      if (fields.repeat && !fields.dueDate && !fields.targetDate) fields.dueDate = DateUtil.nextWeekday(fields.repeat.weekday, null, true);
+      const base = this.editingId ? this.tasks.get(this.editingId) : null;
+      const t = base ? Task.normalize(Object.assign({}, base, fields, { updatedAt: DateUtil.nowIso() })) : Task.create(fields);
+      this.tasks.put([t]);
+      this.v.taskDialog.close();
+      if (base) this.v.toast.show('保存しました'); else this.announceAdded(t);
+    }
+    deleteEditing() {
+      const id = this.editingId;
+      this.v.taskDialog.close();
+      if (id) this.deleteWithUndo([id]);
+    }
+    /** ゴミ箱へ移す。直後なら「元に戻す」で戻せる */
+    deleteWithUndo(ids) {
+      const moved = this.tasks.trash(ids);
+      if (!moved.length) return;
+      this.v.toast.show(`「${short(moved[0].title)}」をゴミ箱に移動しました`, {
+        action: '元に戻す',
+        onAction: () => { this.tasks.restore(moved.map((t) => t.id)); this.v.toast.show('元に戻しました'); },
+      });
+    }
+    isShown(t) {
+      const ui = this.ui.get();
+      if (!Task.matchesFilter(t, ui)) return false;
+      if (ui.layout === 'calendar') { const d = t[BASIS[ui.basis].field]; return !!d && d.slice(0, 7) === ui.month; }
+      return true;
+    }
+    announceAdded(t) {
+      if (this.isShown(t)) { this.v.toast.show(`「${short(t.title)}」を追加しました`); return; }
+      this.v.toast.show(`「${short(t.title)}」を追加しました。今の表示条件では見えません。`, { action: '表示する', onAction: () => this.reveal(t) });
+    }
+    reveal(t) {
+      const ui = this.ui.get();
+      const patch = { status: 'all', pri: '', tag: '' };
+      if (ui.layout === 'calendar') {
+        const d = t[BASIS[ui.basis].field];
+        if (d) Object.assign(patch, { selected: d, month: d.slice(0, 7) }); else patch.layout = 'list';
+      }
+      this.ui.set(patch);
+    }
+
+    /* --- ゴミ箱 --- */
+    openTrash() {
+      this.v.trashDialog.show();
+      this.renderTrash();
+    }
+    renderTrash() {
+      if (!this.v.trashDialog.isOpen) return;
+      const now = Date.now();
+      const items = this.tasks.trashed().map((t) => {
+        const left = Task.trashDaysLeft(t, now);
+        return { id: t.id, title: t.title, meta: `${DateUtil.fmtStamp(t.deletedAt)} に削除・` + (left > 1 ? `あと${left}日で完全に削除` : 'まもなく完全に削除') };
+      });
+      this.v.trashDialog.render({ items });
+    }
+    restoreFromTrash(id) {
+      const [t] = this.tasks.restore([id]);
+      if (t) this.v.toast.show(`「${short(t.title)}」を元に戻しました`);
+    }
+    purgeFromTrash(id) {
+      const t = this.tasks.get(id); if (!t) return;
+      this.confirmPurge([id], { title: '完全に削除', target: `「${short(t.title)}」`, confirm: '完全に削除する' });
+    }
+    emptyTrash() {
+      const ids = this.tasks.trashed().map((t) => t.id);
+      if (!ids.length) return;
+      this.confirmPurge(ids, { title: 'ゴミ箱を空にする', target: `ゴミ箱のタスク${ids.length}件`, confirm: `${ids.length}件を完全に削除` });
+    }
+    /** 確認してから完全に削除する（元に戻せない） */
+    async confirmPurge(ids, { title, target, confirm }) {
+      const ok = await this.v.confirm.ask({ title, message: `${target}を完全に削除します。元に戻せません。`, confirm });
+      if (!ok) return;
+      this.tasks.remove(ids);
+      this.v.toast.show(`${target}を完全に削除しました`);
+    }
+    /** ゴミ箱に入ってから日数が過ぎたタスクを完全に削除する（読み込んだとき・1分ごと） */
+    purgeExpiredTrash() {
+      if (this.tasks.loaded) this.tasks.purgeExpired();
+    }
+
+    /* --- カレンダー --- */
+    navMonth(delta) {
+      const ui = this.ui.get();
+      const today = DateUtil.today();
+      const month = delta === 0 ? today.slice(0, 7) : DateUtil.shiftMonth(ui.month, delta);
+      this.ui.set({ month, selected: month === today.slice(0, 7) ? today : `${month}-01` });
+    }
+    selectDate(date, opts) {
+      if (!DateUtil.parse(date)) return;
+      this.focusCal = !!(opts && opts.focus);
+      this.ui.set({ selected: date, month: date.slice(0, 7) });
+      if (this.focusCal) this.scheduleRender();
+    }
+
+    /* --- インポート --- */
+    openImport() {
+      if (!this.tasks.loaded) return;
+      this.importDraft = null;
+      this.v.importDialog.open();
+    }
+    async readImportFile(file) {
+      if (file.size > 5 * 1024 * 1024) { this.v.importDialog.showError('ファイルが大きすぎます。5MB以下のJSONファイルを選んでください。'); return; }
+      try { this.loadImportText(await file.text(), file.name); }
+      catch (e) { this.v.importDialog.showError('ファイルを読み込めませんでした。もう一度選び直してください。'); }
+    }
+    loadImportText(text, name) {
+      if (!String(text).trim()) { this.v.importDialog.showError('JSONテキストを貼り付けてください。'); return; }
+      try { this.importDraft = TaskModel.parseImport(text); }
+      catch (e) { this.v.importDialog.showError(e.message); return; }
+      const ids = new Set(this.tasks.all().map((t) => t.id));
+      const dup = this.importDraft.tasks.filter((t) => ids.has(t.id)).length;
+      const known = this.tasks.tagNames();
+      const newTags = Task.cleanTags(this.importDraft.tags.concat(this.importDraft.tasks.flatMap((t) => t.tags))).filter((n) => !known.includes(n));
+      this.v.importDialog.showPreview({ name: name || '貼り付けたJSON', tasks: this.importDraft.tasks, skipped: this.importDraft.skipped, dup, newTags });
+      this.updateReplaceWarning();
+    }
+    updateReplaceWarning() {
+      const view = this.v.importDialog;
+      if (!this.importDraft || view.mode !== 'replace') { view.setWarning(''); return; }
+      view.setWarning(`今の${this.tasks.size()}件はすべて削除され、読み込んだ${this.importDraft.tasks.length}件に置き換わります。エクスポートしていないタスクは元に戻せません。`);
+    }
+    applyImport() {
+      if (!this.importDraft) return;
+      const mode = this.v.importDialog.mode;
+      const list = this.importDraft.tasks.map((t) => Object.assign({}, t));
+      this.v.importDialog.close();
+      this.tasks.importTasks(list, mode, this.importDraft.tags);
+      this.importDraft = null;
+      this.v.toast.show(mode === 'replace' ? `${list.length}件のタスクに置き換えました` : `${list.length}件のタスクをインポートしました`);
+    }
+    dropFile(file) {
+      const busy = [this.v.taskDialog, this.v.exportDialog, this.v.trashDialog].some((d) => d.isOpen);
+      if (!this.tasks.loaded || busy) return;
+      if (!this.v.importDialog.isOpen) this.openImport();
+      this.readImportFile(file);
+    }
+
+    /* --- エクスポート --- */
+    async exportTasks() {
+      const n = this.tasks.size();
+      if (!n) { this.v.toast.show('エクスポートするタスクがまだありません。'); return; }
+      const text = this.tasks.exportJSON();
+      const filename = `todo-${DateUtil.today()}.json`;
+      const r = await this.platform.saveFile(filename, text);
+      if (r.ok) {
+        const done = { delivered: 'ファイルを送りました', downloaded: `${filename} をダウンロードしました`, written: `${n}件を「${r.name}」に保存しました` };
+        this.v.toast.show(done[r.status] || `${n}件をエクスポートしました`);
+      } else if (r.code === 'declined') this.v.toast.show('エクスポートを取り消しました');
+      else if (r.code === 'rate_limited') this.v.toast.show('保存の確認が開いています。先にそちらを操作してください。');
+      else this.v.exportDialog.open(text, filename);
+    }
+
+    /* --- PCファイルへの自動保存 --- */
+    async connectBackup() {
+      try {
+        await this.backup.connect(this.tasks.exportJSON());
+        this.v.toast.show(`PCファイル「${this.backup.name}」に自動保存します`);
+      } catch (e) {
+        if (e && e.name === 'AbortError') return;
+        this.v.toast.show('PCファイルを選べませんでした。Chrome か Edge でこのファイルを直接開いてお試しください。');
+      }
+    }
+    async resumeBackup() {
+      await this.backup.resume(this.tasks.exportJSON());
+      if (this.backup.state === 'connected') this.v.toast.show('PCファイルへの自動保存を再開しました');
+    }
+    async disconnectBackup() {
+      const name = this.backup.name;
+      await this.backup.disconnect();
+      this.v.toast.show(`PCファイル「${name}」への自動保存を停止しました（ファイルは残っています）`);
+    }
+
+    /* --- 1分ごとに、期限を過ぎたゴミ箱のタスクを消し、日付が変わったら描き直す --- */
+    startClock() {
+      let last = DateUtil.today();
+      const tick = () => {
+        this.purgeExpiredTrash();
+        const now = DateUtil.today(); if (now !== last) { last = now; this.render(); }
+      };
+      setInterval(tick, 60000);
+      document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+    }
+  }
+
+
+  /* =========================================================
+   * 起動
+   * ======================================================= */
+  const app = new AppController(
+    { tasks: new TaskModel(), ui: new ViewStateModel() },
+    {
+      panel: new PanelView(), placeholder: new PlaceholderView(), timeline: new TimelineView(), calendar: new CalendarView(),
+      taskDialog: new TaskDialogView(), importDialog: new ImportDialogView(),
+      exportDialog: new ExportDialogView(), trashDialog: new TrashDialogView(), confirm: new ConfirmDialogView(), toast: new ToastView(),
+    },
+    Platform,
+    new FileBackup()
+  );
+  app.start();
+})();
+</script>
+
+</body>
+</html>
