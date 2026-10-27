@@ -697,6 +697,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const short = (s) => (s.length > 18 ? s.slice(0, 18) + '…' : s);
+  /** 文字列の大小（日付・日時の文字列を並べるため） */
+  const cmpStr = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
   /** 続く空白を1つにして前後の空白を除く */
   const squash = (s) => String(s).replace(/\s+/g, ' ').trim();
   const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
@@ -970,7 +972,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (tag && !t.tags.includes(tag)) return false;
       return true;
     }
-    const cmpDate = (x, y) => (x && y) ? (x < y ? -1 : x > y ? 1 : 0) : x ? -1 : y ? 1 : 0;
+    const cmpDate = (x, y) => (x && y) ? cmpStr(x, y) : x ? -1 : y ? 1 : 0;   // 日付なしは後ろ
     const cmpPri = (a, b) => PRIORITY[a.priority].rank - PRIORITY[b.priority].rank;
     /** 日付の基準（締め切り日／完了目標日）で古い順。日付なしは最後 */
     function sorter(basis) {
@@ -1168,7 +1170,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 
     /* --- ゴミ箱 --- */
     /** ゴミ箱のタスク（削除した日時の新しい順） */
-    trashed() { return this.tasks.filter((t) => t.deletedAt).sort((a, b) => (a.deletedAt < b.deletedAt ? 1 : a.deletedAt > b.deletedAt ? -1 : 0)); }
+    trashed() { return this.tasks.filter((t) => t.deletedAt).sort((a, b) => cmpStr(b.deletedAt, a.deletedAt)); }
     /** ゴミ箱へ移す。移したタスクを返す */
     trash(ids) { return this.setDeleted(ids, true); }
     /** ゴミ箱から戻す。戻したタスクを返す */
@@ -1226,7 +1228,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 
     exportJSON() {
       const tasks = this.active()
-        .sort((a, b) => (a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0))
+        .sort((a, b) => cmpStr(a.createdAt, b.createdAt))
         .map((t) => ({
           id: t.id, title: t.title, priority: t.priority, tags: t.tags, memo: t.memo,
           dueDate: t.dueDate, targetDate: t.targetDate, repeat: t.repeat, done: t.done,
@@ -1330,27 +1332,12 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     /** ファイルを保存する。{ ok, status | code } を返す */
     async saveFile(filename, text) {
       if (this.standalone) {
-        // 保存先を選べるブラウザ（Chrome・Edge）では保存画面を出す。前回選んだフォルダから開く
+        // 保存先を選べるブラウザ（Chrome・Edge）では保存画面を出す。出せなかったときは、ふつうのダウンロードにする
         if (typeof window.showSaveFilePicker === 'function') {
-          try {
-            const h = await window.showSaveFilePicker(Object.assign({ suggestedName: filename }, JSON_PICKER));
-            const w = await h.createWritable();
-            await w.write(text);
-            await w.close();
-            return { ok: true, status: 'written', name: h.name };
-          } catch (e) {
-            if (e && e.name === 'AbortError') return { ok: false, code: 'declined' };
-            // 保存画面を出せなかったときは、ふつうのダウンロードにする
-          }
+          const r = await this.saveWithPicker(filename, text);
+          if (r) return r;
         }
-        try {
-          const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-          const a = document.createElement('a');
-          a.href = url; a.download = filename;
-          document.body.append(a); a.click(); a.remove();
-          setTimeout(() => URL.revokeObjectURL(url), 1500);
-          return { ok: true, status: 'downloaded' };
-        } catch (e) { return { ok: false, code: 'fallback' }; }
+        return this.download(filename, text);
       }
       if (this.downloads) {
         try {
@@ -1362,6 +1349,28 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         }
       }
       return { ok: false, code: 'fallback' };
+    },
+    /** 保存画面で選んだファイルに書く（前回選んだフォルダから開く）。保存画面を出せなければ null */
+    async saveWithPicker(filename, text) {
+      try {
+        const h = await window.showSaveFilePicker(Object.assign({ suggestedName: filename }, JSON_PICKER));
+        const w = await h.createWritable();
+        await w.write(text);
+        await w.close();
+        return { ok: true, status: 'written', name: h.name };
+      } catch (e) {
+        return e && e.name === 'AbortError' ? { ok: false, code: 'declined' } : null;
+      }
+    },
+    download(filename, text) {
+      try {
+        const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = filename;
+        document.body.append(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1500);
+        return { ok: true, status: 'downloaded' };
+      } catch (e) { return { ok: false, code: 'fallback' }; }
     },
   };
 
@@ -1481,6 +1490,14 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     return b;
   }
 
+  /** アイコンだけのボタン。読み上げ用の名前（label）と、マウスを乗せたときの説明（tip）を付ける */
+  function iconButton(icon, cls, act, { id, label, tip }) {
+    const b = button(null, cls, act);
+    if (id) b.id = id;
+    b.setAttribute('aria-label', label); b.title = tip; b.innerHTML = icon;
+    return b;
+  }
+
   /** ダイアログの共通部分（showModal の無いブラウザでは open 属性で代用） */
   class DialogView {
     constructor(sel) { this.dlg = $(sel); }
@@ -1526,24 +1543,34 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       }
       return chip;
     },
+    /** カード1枚。prefix はタイムライン（tl）とカレンダーの日別一覧（d）で要素の id を分けるため */
     card(t, prefix) {
       const u = Task.urgency(t);
       const art = h('article', 'card' + (t.done ? ' is-done' : '') + (u === 'overdue' ? ' is-over' : u === 'today' ? ' is-today' : ''));
       art.dataset.id = t.id;
-
+      const id = (part) => `${prefix}-${part}-${t.id}`;
+      const [memoLabel, memo] = this.memo(t, id('memo'));
+      art.append(this.check(t, id('done')), this.main(t, id('title')), this.side(t, id), memoLabel, memo);   // メモはカードの幅いっぱいに置く
+      return art;
+    },
+    check(t, id) {
       const lab = h('label', 'check');
       const cb = document.createElement('input');
-      cb.type = 'checkbox'; cb.id = `${prefix}-done-${t.id}`; cb.checked = t.done; cb.dataset.act = 'toggle';
+      cb.type = 'checkbox'; cb.id = id; cb.checked = t.done; cb.dataset.act = 'toggle';
       cb.setAttribute('aria-label', t.done ? `「${t.title}」を未完了に戻す` : `「${t.title}」を完了にする`);
       const box = h('span', 'box'); box.innerHTML = ICON.check;
       lab.append(cb, box);
-
+      return lab;
+    },
+    /** タスク名・優先度・タグ・日付・繰り返し */
+    main(t, titleId) {
       const main = h('div', 'card-main');
       const head = h('div', 'card-head');
       const title = button(t.title, 'card-title', 'edit');
-      title.id = `${prefix}-title-${t.id}`; title.title = 'クリックで編集';
+      title.id = titleId; title.title = 'クリックで編集';
+      const priLabel = '優先度 ' + PRIORITY[t.priority].label;
       const pri = h('span', 'pri p-' + t.priority, PRIORITY[t.priority].label);
-      pri.setAttribute('role', 'img'); pri.setAttribute('aria-label', '優先度 ' + PRIORITY[t.priority].label); pri.title = '優先度 ' + PRIORITY[t.priority].label;
+      pri.setAttribute('role', 'img'); pri.setAttribute('aria-label', priLabel); pri.title = priLabel;
       head.append(title, pri);
       t.tags.forEach((n) => head.append(tagChip(n, false)));
       main.append(head);
@@ -1557,27 +1584,30 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         const rc = h('span', 'repeat-chip'); rc.innerHTML = ICON.repeat; rc.append(Task.repeatLabel(t.repeat));
         ex.append(rc); main.append(ex);
       }
-
-      const ml = h('label', 'sr', `「${t.title}」のメモ`); ml.htmlFor = `${prefix}-memo-${t.id}`;
-      const memo = document.createElement('textarea');
-      memo.className = 'memo' + (t.memo.trim() ? ' has-text' : '');
-      memo.id = `${prefix}-memo-${t.id}`; memo.dataset.act = 'memo'; memo.maxLength = LIMIT.memo;
-      memo.placeholder = 'メモ（進捗状況・担当など）';
-      memo.rows = Math.min(8, Math.max(1, t.memo.split('\n').length));
-      memo.defaultValue = t.memo;
-
+      return main;
+    },
+    /** 完了の印と、編集・削除のボタン */
+    side(t, id) {
       const side = h('div', 'card-side');
       if (t.done) side.append(h('span', 'done-pill', '完了'));
       const acts = h('div', 'card-acts');
-      const eb = button(null, 'icon-btn', 'edit'); eb.id = `${prefix}-edit-${t.id}`;
-      eb.setAttribute('aria-label', `「${t.title}」を編集`); eb.title = '編集'; eb.innerHTML = ICON.edit;
-      const db = button(null, 'icon-btn del', 'delete'); db.id = `${prefix}-del-${t.id}`;
-      db.setAttribute('aria-label', `「${t.title}」を削除`); db.title = '削除'; db.innerHTML = ICON.del;
-      acts.append(eb, db);
+      acts.append(
+        iconButton(ICON.edit, 'icon-btn', 'edit', { id: id('edit'), label: `「${t.title}」を編集`, tip: '編集' }),
+        iconButton(ICON.del, 'icon-btn del', 'delete', { id: id('del'), label: `「${t.title}」を削除`, tip: '削除' }),
+      );
       side.append(acts);
-
-      art.append(lab, main, side, ml, memo);   // メモはカードの幅いっぱいに置く
-      return art;
+      return side;
+    },
+    /** メモ欄（読み上げ用のラベルと一緒に返す） */
+    memo(t, id) {
+      const label = h('label', 'sr', `「${t.title}」のメモ`); label.htmlFor = id;
+      const memo = document.createElement('textarea');
+      memo.className = 'memo' + (t.memo.trim() ? ' has-text' : '');
+      memo.id = id; memo.dataset.act = 'memo'; memo.maxLength = LIMIT.memo;
+      memo.placeholder = 'メモ（進捗状況・担当など）';
+      memo.rows = Math.min(8, Math.max(1, t.memo.split('\n').length));
+      memo.defaultValue = t.memo;
+      return [label, memo];
     },
     badge(t, basis) {
       const b = BASIS[basis]; const s = t[b.field];
@@ -1600,6 +1630,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 
   /** カードの操作（完了・編集・削除・メモ）を1か所で受け取る */
   function bindCardEvents(root, { onAction, onMemo }) {
+    const memoOf = (e) => (e.target.matches && e.target.matches('textarea.memo') ? e.target : null);
     root.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]');
       if (!b || !root.contains(b) || b.dataset.act === 'toggle' || b.dataset.act === 'memo') return;
@@ -1613,20 +1644,17 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (host) onAction('toggle', host.dataset.id);
     });
     root.addEventListener('input', (e) => {
-      const m = e.target;
-      if (!m.matches || !m.matches('textarea.memo')) return;
+      const m = memoOf(e); if (!m) return;
       m.classList.toggle('has-text', !!m.value.trim());
       if (!CSS.supports || !CSS.supports('field-sizing', 'content')) { m.style.height = 'auto'; m.style.height = m.scrollHeight + 2 + 'px'; }
     });
     root.addEventListener('keydown', (e) => {
-      const m = e.target;
-      if (!m.matches || !m.matches('textarea.memo')) return;
+      const m = memoOf(e); if (!m) return;
       if (e.key === 'Escape') { e.preventDefault(); m.value = m.defaultValue; m.blur(); }
       else if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); m.blur(); }
     });
     root.addEventListener('focusout', (e) => {
-      const m = e.target;
-      if (!m.matches || !m.matches('textarea.memo')) return;
+      const m = memoOf(e); if (!m) return;
       const host = m.closest('[data-id]');
       if (host) onMemo(host.dataset.id, m.value);
     });
@@ -1644,6 +1672,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     }
     keyOf(b) { return ['layout', 'status', 'basis', 'pri'].find((k) => k in b.dataset); }
     cmd(name) { return $(`[data-cmd="${name}"]`, this.menu); }
+    /** メニューの中で、今押せる項目 */
+    menuItems() { return $$('[data-cmd]', this.menu).filter((b) => !b.hidden && !b.disabled); }
     bind({ onAdd, onCommand, onSet, onTag, onResumeBackup }) {
       this.add.addEventListener('click', onAdd);
       this.more.addEventListener('click', () => (this.menu.hidden ? this.openMenu() : this.closeMenu()));
@@ -1654,7 +1684,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         onCommand(b.dataset.cmd);
       });
       this.menu.addEventListener('keydown', (e) => {
-        const items = $$('[data-cmd]', this.menu).filter((b) => !b.hidden && !b.disabled);
+        const items = this.menuItems();
         const i = items.indexOf(document.activeElement);
         if (e.key === 'ArrowDown') { e.preventDefault(); items[(i + 1) % items.length].focus(); }
         else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
@@ -1668,7 +1698,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     }
     openMenu() {
       this.menu.hidden = false; this.more.setAttribute('aria-expanded', 'true');
-      const first = $$('[data-cmd]', this.menu).find((b) => !b.hidden && !b.disabled);
+      const [first] = this.menuItems();
       if (first) first.focus();
     }
     closeMenu(focusButton) {
@@ -2084,9 +2114,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         const main = h('div', 'tr-main');
         main.append(h('span', 'tr-title', title), h('span', 'tr-meta', meta));
         const acts = h('div', 'tr-acts');
-        const back = button('元に戻す', 'btn small', 'restore'); back.setAttribute('aria-label', `「${title}」を元に戻す`);
-        const del = button('完全に削除', 'btn small danger-text', 'purge'); del.setAttribute('aria-label', `「${title}」を完全に削除`);
-        acts.append(back, del);
+        const act = (text, cls, name) => { const b = button(text, cls, name); b.setAttribute('aria-label', `「${title}」を${text}`); return b; };
+        acts.append(act('元に戻す', 'btn small', 'restore'), act('完全に削除', 'btn small danger-text', 'purge'));
         li.append(main, acts);
         this.list.append(li);
       });
