@@ -564,7 +564,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     </div>
     <div class="dlg-foot">
       <button type="button" class="btn danger-text" id="f-delete" hidden>削除</button>
-      <span class="kbd-hint" id="f-kbd">Enter で追加 ／ Esc で閉じる</span>
+      <span class="kbd-hint" id="f-kbd">Esc で閉じる</span>
       <span class="spacer"></span>
       <button type="button" class="btn" id="f-cancel">キャンセル</button>
       <button type="submit" class="btn primary" id="f-save">追加する</button>
@@ -1877,12 +1877,16 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.due = $('#f-due'); this.target = $('#f-target'); this.pri = $('#f-pri'); this.warn = $('#f-date-warn');
       this.repeat = $('#f-repeat'); this.weekday = $('#f-weekday');
       this.tagPick = $('#f-tag-pick'); this.tagNew = $('#f-tag-new'); this.tagBox = $('#f-tags');
-      this.stamp = $('#f-stamp'); this.kbd = $('#f-kbd');
+      this.stamp = $('#f-stamp');
       this.del = $('#f-delete'); this.save = $('#f-save');
       this.sel = []; this.weekdayTouched = false; this.autoDue = false;
     }
     bind({ onSubmit, onDelete, onClose }) {
       this.form.addEventListener('submit', (e) => { e.preventDefault(); onSubmit(this.values()); });
+      // 入力欄で Enter を押しても追加・保存しない（「追加する」「保存する」ボタンを押したときだけ）
+      this.form.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.isComposing && e.target.tagName === 'INPUT') e.preventDefault();
+      });
       this.closeOn('#f-cancel', '#f-close');
       this.del.addEventListener('click', onDelete);
       this.dlg.addEventListener('close', onClose);
@@ -1939,7 +1943,6 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.err.hidden = true;
       this.del.hidden = !t;
       this.save.textContent = t ? '保存する' : '追加する';
-      this.kbd.textContent = t ? 'Enter で保存 ／ Esc で閉じる' : 'Enter で追加 ／ Esc で閉じる';
       if (t) {
         this.stamp.textContent = `作成 ${DateUtil.fmtStamp(t.createdAt)}　更新 ${DateUtil.fmtStamp(t.updatedAt)}` + (t.done && t.completedAt ? `　完了 ${DateUtil.fmtStamp(t.completedAt)}` : '');
         this.stamp.hidden = false;
