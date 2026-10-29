@@ -121,6 +121,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .save-pill .sp-file{min-width:0;font-weight:700;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:14em}
 .save-pill .sp-time{white-space:nowrap;font-variant-numeric:tabular-nums}
 .save-pill[data-state="wait"] .sp-dot{background:var(--yellow-bar)}
+.save-pill[data-state="wait"] .link-btn{color:var(--yellow-bar)}
 .save-pill[data-state="error"] .sp-dot{background:var(--red-bar)}
 
 /* その他メニュー */
@@ -153,6 +154,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 .tl-badge.st-soon{border-color:var(--orange-line)}
 .tl-badge.st-done{opacity:.55}
 .tl-badge.is-unset .tb-d{color:var(--ink-3)}
+/* 今日の位置を示す横ライン */
+.tl-now{display:grid;grid-template-columns:var(--badge-w) minmax(0,1fr);gap:0 20px;align-items:center}
+.tn-pill{position:relative;z-index:1;justify-self:center;padding:2px 12px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:12px;font-weight:700;line-height:1.6}
+.tn-bar{display:flex;align-items:center;gap:10px;font-size:12.5px;font-weight:700;color:var(--accent);white-space:nowrap}
+.tn-bar::after{content:"";flex:1;height:2px;border-radius:1px;background:var(--accent)}
 
 /* タスクカード */
 .card{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:0 14px;padding:16px 14px 12px 18px;border:1px solid var(--line);border-radius:12px;background:var(--surface);box-shadow:var(--shadow-xs)}
@@ -245,6 +251,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .cal-cell.is-sat .cal-date{color:var(--blue)}
 .cal-cell.is-out .cal-date{opacity:.55}
 .cal-cell.is-today .cal-date{font-weight:700}
+.cal-now{flex:none;padding:0 7px;border-radius:999px;background:var(--accent);color:var(--on-accent);font-size:10.5px;font-weight:700;line-height:1.7}
 .cal-hol{min-width:0;font-size:10.5px;color:var(--red);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cal-pills{display:flex;flex-direction:column;gap:3px;min-width:0}
 .cal-pill{display:block;width:100%;min-width:0;padding:1px 7px;border:0;border-radius:5px;background:var(--wash);color:var(--ink);font-size:12px;line-height:1.7;text-align:left;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
@@ -351,7 +358,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 
 @media (max-width:760px){
   :root{--badge-w:58px}
-  .tl-row{gap:0 12px}
+  .tl-row,.tl-now{gap:0 12px}
   .tb-d{font-size:15px}
   .card{grid-template-columns:auto minmax(0,1fr);gap:0 12px;padding:14px 12px 10px 14px}
   .card-side{order:2;grid-column:1 / -1;flex-direction:row;justify-content:flex-end;align-items:center;margin-top:4px}
@@ -373,6 +380,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
   .cal-cell.is-today{padding:2px 2px 4px}
   .cal-date{min-width:20px;height:20px;font-size:12px}
   .cal-hol{display:none}
+  .cal-top-row{flex-wrap:wrap;gap:2px}
+  .cal-now{padding:0 4px;font-size:9.5px;line-height:1.5}
   .cal-pills{gap:2px}
   .cal-pill{height:5px;padding:0;border-radius:3px;font-size:0;line-height:0;background:var(--line-2)}
   .cal-pill.u-overdue{background:var(--red-bar)}
@@ -1424,7 +1433,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.emit();
     }
     async connect(text) {
-      const h = await window.showSaveFilePicker(Object.assign({ suggestedName: 'ToDo_Backup.json' }, JSON_PICKER));
+      const h = await window.showSaveFilePicker(Object.assign({ suggestedName: 'TODO_backup.json' }, JSON_PICKER));
       this.handle = h; this.name = h.name; this.state = 'connected';
       await KV.set('backup', h);
       await this.write(text);
@@ -1794,11 +1803,23 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         sec.setAttribute('aria-label', g.label);
         sec.append(h('h3', 'tl-mlabel', g.label));
         const ol = h('ol', 'tl-list');
-        g.items.forEach((t) => ol.append(TaskCard.row(t, basis)));
+        g.items.forEach((t) => ol.append(t.marker === 'today' ? this.todayRow(t.date) : TaskCard.row(t, basis)));
         sec.append(ol);
         frag.append(sec);
       });
       this.root.append(frag);
+    }
+    todayRow(date) {
+      const li = h('li', 'tl-now');
+      li.append(h('span', 'tn-pill', '今日'), h('span', 'tn-bar', DateUtil.fmtShort(date)));
+      return li;
+    }
+    /** 今日のラインが画面の上半分に見えていなければ、画面の上のほうまで送る（直前のカードの端は少し見えるように残す） */
+    scrollToToday() {
+      const el = $('.tl-now', this.root); if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      if (top >= 0 && top < window.innerHeight / 2) return;
+      window.scrollTo({ top: window.scrollY + top - 96, behavior: 'instant' });
     }
   }
 
@@ -1878,8 +1899,9 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       const btn = button(String(c.day), 'cal-date');
       btn.id = 'cal-' + c.date; btn.tabIndex = c.selected ? 0 : -1;
       btn.setAttribute('aria-pressed', String(c.selected));
-      btn.setAttribute('aria-label', `${c.label}${c.holiday ? ' ' + c.holiday : ''}、${vm.basisLabel}のタスク${c.tasks.length}件`);
+      btn.setAttribute('aria-label', `${c.today ? '今日 ' : ''}${c.label}${c.holiday ? ' ' + c.holiday : ''}、${vm.basisLabel}のタスク${c.tasks.length}件`);
       top.append(btn);
+      if (c.today) { const now = h('span', 'cal-now', '今日'); now.setAttribute('aria-hidden', 'true'); top.append(now); }
       if (c.holiday) top.append(h('span', 'cal-hol', c.holiday));
       cell.append(top);
 
@@ -2182,6 +2204,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.editingId = null;
       this.importDraft = null;
       this.focusCal = false;
+      this.timelineSeen = false;
+      this.lastLayout = null;
       this.lastErrAt = 0;
       this.renderPending = false;
       this.pointerDown = false;
@@ -2316,10 +2340,17 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       const listMode = ui.layout === 'list';
       if (phase === 'ready' && listMode && !items.length) phase = 'filtered';
 
+      // 今日の位置まで送るのは、開いて最初にリストを出したときと、カレンダーからリストに切り替えたときだけ（操作のたびに動くと場所を見失う）
+      const showTimeline = phase === 'ready' && listMode;
+      const jump = showTimeline && (!this.timelineSeen || this.lastLayout !== 'list');
+      this.lastLayout = ui.layout;
+      if (showTimeline) this.timelineSeen = true;
+
       this.v.placeholder.render({ phase, message: this.emptyMessage(ui) });
-      this.v.timeline.render({ visible: phase === 'ready' && listMode, groups: this.buildGroups(items, ui.basis), basis: ui.basis });
+      this.v.timeline.render({ visible: showTimeline, groups: this.buildGroups(items, ui.basis), basis: ui.basis });
       this.v.calendar.render(phase === 'ready' && !listMode ? this.calendarViewModel(ui, items) : { visible: false });
       this.focusCal = false;
+      if (jump) this.v.timeline.scrollToToday();
 
       if (activeId && document.activeElement !== document.getElementById(activeId)) {
         const el = document.getElementById(activeId);
@@ -2327,18 +2358,25 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       }
     }
     buildGroups(items, basis) {
-      const f = BASIS[basis].field; const year = new Date().getFullYear();
+      const f = BASIS[basis].field; const year = new Date().getFullYear(); const today = DateUtil.today();
       const groups = []; let cur = null;
+      const groupOf = (key) => {
+        if (cur && cur.key === key) return cur;
+        let label = '日付未設定';
+        if (key !== 'none') { const [y, m] = key.split('-').map(Number); label = y === year ? `${m}月` : `${y}年${m}月`; }
+        cur = { key, label, items: [] };
+        groups.push(cur);
+        return cur;
+      };
+      // 今日の目印：今日以降で最初のタスクの手前（なければ日付つきタスクの最後）に入れる。日付つきが1件もなければ出さない
+      let marked = !items.some((t) => t[f]);
+      const mark = () => { marked = true; groupOf(today.slice(0, 7)).items.push({ marker: 'today', date: today }); };
       items.forEach((t) => {
-        const d = t[f]; const key = d ? d.slice(0, 7) : 'none';
-        if (!cur || cur.key !== key) {
-          let label = '日付未設定';
-          if (d) { const [y, m] = key.split('-').map(Number); label = y === year ? `${m}月` : `${y}年${m}月`; }
-          cur = { key, label, items: [] };
-          groups.push(cur);
-        }
-        cur.items.push(t);
+        const d = t[f];
+        if (!marked && (!d || d >= today)) mark();
+        groupOf(d ? d.slice(0, 7) : 'none').items.push(t);
       });
+      if (!marked) mark();
       return groups;
     }
     calendarViewModel(ui, items) {
