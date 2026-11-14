@@ -234,6 +234,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* カレンダー */
 .cal-card,.day-panel{padding:18px 18px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
+.day-panel{margin-top:18px}
 .cal-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;margin-bottom:14px}
 .cal-top h2{margin:0;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums}
 .basis-pill{padding:2px 11px;border-radius:999px;background:var(--red-soft);color:var(--red);font-size:12.5px;font-weight:700}
@@ -294,6 +295,7 @@ dialog::backdrop{background:rgb(16 24 20 / .45)}
 .dlg{display:flex;flex-direction:column;max-height:calc(100dvh - 32px)}
 .dlg-head{display:flex;align-items:flex-start;gap:12px;padding:20px 22px 4px}
 .dlg-head h2{flex:1;margin:0;font-size:18px;font-weight:700}
+.dlg-titles{flex:1}
 .dlg-head .sub{margin:6px 0 0;font-size:13px;font-weight:400;color:var(--ink-2)}
 .dlg-body{display:grid;gap:14px;padding:14px 22px 18px;overflow-y:auto;min-height:0}
 .dlg-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:14px 22px;border-top:1px solid var(--line)}
@@ -318,6 +320,7 @@ textarea.code{font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
 .f-tags{display:flex;flex-wrap:wrap;gap:6px}
 .stamp{margin:0;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .kbd-hint{font-size:12px;color:var(--ink-3)}
+.cf-msg{margin:0}
 .x{display:grid;place-items:center;width:34px;height:34px;margin:-4px -6px 0 0;border:0;border-radius:8px;background:transparent;color:var(--ink-3);cursor:pointer}
 .x:hover{background:var(--wash);color:var(--ink)}
 .x svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
@@ -516,7 +519,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         </div>
         <p class="cal-undated" id="cal-undated" hidden><span id="cal-undated-text"></span></p>
       </section>
-      <section class="day-panel" aria-labelledby="day-title" style="margin-top:18px">
+      <section class="day-panel" aria-labelledby="day-title">
         <div class="day-head">
           <h2 id="day-title"></h2>
           <span class="day-hol" id="day-hol" hidden></span>
@@ -589,7 +592,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 <dialog id="dlg-import" class="narrow" aria-labelledby="dlg-import-title">
   <div class="dlg">
     <div class="dlg-head">
-      <div style="flex:1">
+      <div class="dlg-titles">
         <h2 id="dlg-import-title">JSONからインポート</h2>
         <p class="sub">エクスポートしたJSONファイル（PCに自動保存したファイルも可）を読み込みます。</p>
       </div>
@@ -638,7 +641,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 <dialog id="dlg-export" class="narrow" aria-labelledby="dlg-export-title">
   <div class="dlg">
     <div class="dlg-head">
-      <div style="flex:1">
+      <div class="dlg-titles">
         <h2 id="dlg-export-title">エクスポート</h2>
         <p class="sub">この画面ではファイルを直接保存できません。下のJSONをコピーし、<span id="exp-name"></span> などの名前でテキストファイルとして保存してください。</p>
       </div>
@@ -654,7 +657,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 <dialog id="dlg-trash" class="narrow" aria-labelledby="dlg-trash-title">
   <div class="dlg">
     <div class="dlg-head">
-      <div style="flex:1">
+      <div class="dlg-titles">
         <h2 id="dlg-trash-title">ゴミ箱</h2>
         <p class="sub" id="trash-sub"></p>
       </div>
@@ -671,7 +674,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 <dialog id="dlg-confirm" class="narrow" aria-labelledby="cf-title">
   <div class="dlg">
     <div class="dlg-head"><h2 id="cf-title"></h2></div>
-    <div class="dlg-body"><p id="cf-msg" style="margin:0"></p></div>
+    <div class="dlg-body"><p id="cf-msg" class="cf-msg"></p></div>
     <div class="dlg-foot"><span class="spacer"></span><button type="button" class="btn" id="cf-no">キャンセル</button><button type="button" class="btn danger" id="cf-yes"></button></div>
   </div>
 </dialog>
@@ -716,6 +719,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
   /** 続く空白を1つにして前後の空白を除く */
   const squash = (s) => String(s).replace(/\s+/g, ' ').trim();
   const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
+  const DAY_MS = 86400000;
   async function pool(items, fn, n = 4) {
     let i = 0;
     const run = async () => { while (i < items.length) { const it = items[i++]; await fn(it); } };
@@ -752,8 +756,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       base.setDate(base.getDate() + n);
       return ymd(base);
     }
-    function diffDays(s) { const d = parse(s); return d ? Math.round((d - startOfToday()) / 86400000) : null; }
-    function between(a, b) { const x = parse(a), y = parse(b); return x && y ? Math.round((y - x) / 86400000) : null; }
+    function diffDays(s) { const d = parse(s); return d ? Math.round((d - startOfToday()) / DAY_MS) : null; }
+    function between(a, b) { const x = parse(a), y = parse(b); return x && y ? Math.round((y - x) / DAY_MS) : null; }
     const thisYear = () => new Date().getFullYear();
     function fmtMD(s) { const d = parse(s); return d ? `${d.getMonth() + 1}/${d.getDate()}` : ''; }
     function fmtShort(s) {
@@ -961,8 +965,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     }
     /** ゴミ箱から完全に削除されるまでの残り日数（切り上げ。過ぎていれば 0） */
     function trashDaysLeft(t, now = Date.now()) {
-      const end = Date.parse(t.deletedAt) + TRASH_DAYS * 86400000;
-      return Math.max(0, Math.ceil((end - now) / 86400000));
+      const end = Date.parse(t.deletedAt) + TRASH_DAYS * DAY_MS;
+      return Math.max(0, Math.ceil((end - now) / DAY_MS));
     }
     /** 完了・未完了を切り替えた写しを返す */
     function toggled(t) {
@@ -976,8 +980,10 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (d === null) return '';
       return d < 0 ? 'overdue' : d === 0 ? 'today' : d <= SOON_DAYS ? 'soon' : '';
     }
+    /** 日付の基準（'due' 締め切り日 / 'target' 完了目標日）で見たタスクの日付。なければ '' */
+    const dateOf = (t, basis) => t[BASIS[basis].field];
     /** タスクの期限の状態（既定は締め切り日、basis が 'target' なら完了目標日で判定）。完了済みと日付なしは '' */
-    const urgency = (t, basis = 'due') => { const s = t[BASIS[basis].field]; return (t.done || !s) ? '' : dateState(s); };
+    const urgency = (t, basis = 'due') => { const s = dateOf(t, basis); return (t.done || !s) ? '' : dateState(s); };
 
     function matchesFilter(t, { status, pri, tag }) {
       if (status === 'open' && t.done) return false;
@@ -994,6 +1000,17 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       return (a, b) => cmpDate(a[f], b[f]) || (a.done - b.done) || cmpPri(a, b) || cmpDate(a[o], b[o]) || a.title.localeCompare(b.title, 'ja');
     }
     const byDay = (a, b) => (a.done - b.done) || cmpPri(a, b) || a.title.localeCompare(b.title, 'ja');
+    /** 日付の基準の日付ごとに分ける（日付 → その日のタスク）。日付なしは入れない */
+    function groupByDate(list, basis) {
+      const map = new Map();
+      list.forEach((t) => {
+        const d = dateOf(t, basis); if (!d) return;
+        if (!map.has(d)) map.set(d, []);
+        map.get(d).push(t);
+      });
+      map.forEach((arr) => arr.sort(byDay));
+      return map;
+    }
 
     const repeatLabel = (r) => `毎週${WEEKDAYS[r.weekday]}曜`;
     /** 毎週繰り返しのタスクを完了したときに作る、翌週分のタスク */
@@ -1011,7 +1028,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       else dueDate = next;
       return create({ title: t.title, priority: t.priority, tags: t.tags.slice(), memo: t.memo, dueDate, targetDate, repeat: Object.assign({}, t.repeat) });
     }
-    return { newId, normalize, create, patch, toggled, trashDaysLeft, cleanTags, splitTagText, dateState, urgency, matchesFilter, sorter, byDay, repeatLabel, nextOccurrence };
+    return { newId, normalize, create, patch, toggled, trashDaysLeft, cleanTags, splitTagText, dateOf, dateState, urgency, matchesFilter, sorter, groupByDate, repeatLabel, nextOccurrence };
   })();
 
   /** 保存先：このブラウザ */
@@ -1020,15 +1037,16 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     start(cb) {
       let list = this.read();
       let tags = this.readTags();
-      if (this.merge) {
-        const map = new Map(list.map((t) => [t.id, t]));
-        this.merge.forEach((t) => map.set(t.id, t));
-        list = [...map.values()];
-      }
-      if (this.mergeTags) tags = Task.cleanTags(tags.concat(this.mergeTags));
       this.ok = this.probe();
-      if (this.merge) this.saveAll(list);
-      if (this.mergeTags) this.putTags(tags);
+      // 引き継ぐタスク・タグがあれば、このブラウザの分に重ねて保存する（同じIDは引き継ぐ側で上書き）
+      if (this.merge) {
+        list = [...new Map(list.concat(this.merge).map((t) => [t.id, t])).values()];
+        this.saveAll(list);
+      }
+      if (this.mergeTags) {
+        tags = Task.cleanTags(tags.concat(this.mergeTags));
+        this.putTags(tags);
+      }
       cb.onTags(tags);
       cb.onData(list);
     }
@@ -1229,16 +1247,6 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (this.repo) this.repo.putTags(this.tags);
     }
     query(f) { return this.active().filter((t) => Task.matchesFilter(t, f)).sort(Task.sorter(f.basis)); }
-    groupByDate(list, field) {
-      const map = new Map();
-      list.forEach((t) => {
-        const d = t[field]; if (!d) return;
-        if (!map.has(d)) map.set(d, []);
-        map.get(d).push(t);
-      });
-      map.forEach((arr) => arr.sort(Task.byDay));
-      return map;
-    }
 
     exportJSON() {
       const tasks = this.active()
@@ -1288,6 +1296,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (this.persistKeys.some((k) => k in patch)) this.persist();
       this.emit({ type: 'ui' });
     }
+    /** 絞り込み中のタグが一覧から消えていたら解除する。描画の途中で呼ぶので、変更は知らせない */
+    dropMissingTag(names) { if (this.state.tag && !names.includes(this.state.tag)) this.state.tag = ''; }
     restore() {
       try {
         const u = JSON.parse(Store.get(UI_KEY) || '{}') || {};
@@ -1308,6 +1318,16 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
    * ======================================================= */
   /** JSON の保存画面の設定。id が同じ保存画面どうしで、前回選んだフォルダを共有する（エクスポートと PC ファイルへの自動保存） */
   const JSON_PICKER = { id: 'todo-json', types: [{ description: 'JSON ファイル', accept: { 'application/json': ['.json'] } }] };
+  /** 保存画面（showSaveFilePicker）を出せるブラウザか（Chrome・Edge） */
+  const canPickFile = () => typeof window.showSaveFilePicker === 'function';
+  /** JSON の保存画面を出し、選ばれたファイルを返す */
+  const pickJsonFile = (suggestedName) => window.showSaveFilePicker(Object.assign({ suggestedName }, JSON_PICKER));
+  /** 選ばれたファイルの中身を text で置き換える */
+  async function writeFile(handle, text) {
+    const w = await handle.createWritable();
+    await w.write(text);
+    await w.close();
+  }
 
   const Platform = {
     standalone: false,
@@ -1347,7 +1367,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     async saveFile(filename, text) {
       if (this.standalone) {
         // 保存先を選べるブラウザ（Chrome・Edge）では保存画面を出す。出せなかったときは、ふつうのダウンロードにする
-        if (typeof window.showSaveFilePicker === 'function') {
+        if (canPickFile()) {
           const r = await this.saveWithPicker(filename, text);
           if (r) return r;
         }
@@ -1367,10 +1387,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     /** 保存画面で選んだファイルに書く（前回選んだフォルダから開く）。保存画面を出せなければ null */
     async saveWithPicker(filename, text) {
       try {
-        const h = await window.showSaveFilePicker(Object.assign({ suggestedName: filename }, JSON_PICKER));
-        const w = await h.createWritable();
-        await w.write(text);
-        await w.close();
+        const h = await pickJsonFile(filename);
+        await writeFile(h, text);
         return { ok: true, status: 'written', name: h.name };
       } catch (e) {
         return e && e.name === 'AbortError' ? { ok: false, code: 'declined' } : null;
@@ -1426,7 +1444,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
    */
   class FileBackup extends Emitter {
     constructor() { super(); this.handle = null; this.state = 'off'; this.name = ''; this.savedAt = null; this.timer = null; this.writing = false; this.pending = null; }
-    get supported() { return Platform.standalone && typeof window.showSaveFilePicker === 'function'; }
+    get supported() { return Platform.standalone && canPickFile(); }
     async restore() {
       if (!this.supported) return;
       const h = await KV.get('backup');
@@ -1438,7 +1456,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.emit();
     }
     async connect(text) {
-      const h = await window.showSaveFilePicker(Object.assign({ suggestedName: 'TODO_backup.json' }, JSON_PICKER));
+      const h = await pickJsonFile('TODO_backup.json');
       this.handle = h; this.name = h.name; this.state = 'connected';
       await KV.set('backup', h);
       await this.write(text);
@@ -1466,9 +1484,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (this.writing) { this.pending = text; return; }
       this.writing = true;
       try {
-        const w = await this.handle.createWritable();
-        await w.write(text);
-        await w.close();
+        await writeFile(this.handle, text);
         this.savedAt = new Date(); this.state = 'connected';
       } catch (e) {
         this.state = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError') ? 'wait' : 'error';
@@ -1490,6 +1506,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     target: '<svg viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="4.6"/><circle cx="6" cy="6" r="1.6"/></svg>',
     repeat: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 6.5A5 5 0 0 1 12.2 4M13 9.5A5 5 0 0 1 3.8 12M12.5 1.5V4.3H9.7M3.5 14.5v-2.8h2.8"/></svg>',
   };
+  /** 日付の基準ごとの印（締め切り日は旗、完了目標日は的） */
+  const BASIS_ICON = { due: ICON.flag, target: ICON.target };
   function h(tag, cls, text) {
     const e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -1548,7 +1566,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     dateChip(kind, s, done) {
       const b = BASIS[kind];
       const chip = h('span', `dchip ${kind}` + (s ? '' : ' unset'));
-      const ic = h('span', 'dc-ic'); ic.innerHTML = kind === 'due' ? ICON.flag : ICON.target;
+      const ic = h('span', 'dc-ic'); ic.innerHTML = BASIS_ICON[kind];
       chip.append(ic, h('span', 'dc-k', b.chip), h('span', 'dc-v', s ? DateUtil.fmtShort(s) : '未設定'));
       if (s && !done) {
         const d = DateUtil.diffDays(s);
@@ -1624,11 +1642,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       return [label, memo];
     },
     badge(t, basis) {
-      const b = BASIS[basis]; const s = t[b.field];
+      const s = Task.dateOf(t, basis);
       const st = t.done ? 'done' : (s ? Task.dateState(s) : '');
       const el = h('div', 'tl-badge' + (basis === 'target' ? ' is-target' : '') + (st ? ' st-' + st : '') + (s ? '' : ' is-unset'));
       el.setAttribute('aria-hidden', 'true');
-      const k = h('span', 'tb-k'); k.innerHTML = basis === 'due' ? ICON.flag : ICON.target; k.append(b.short);
+      const k = h('span', 'tb-k'); k.innerHTML = BASIS_ICON[basis]; k.append(BASIS[basis].short);
       el.append(k, h('span', 'tb-d', s ? DateUtil.fmtMD(s) : '—'), h('span', 'tb-w', s ? WEEKDAYS[DateUtil.parse(s).getDay()] : '未設定'));
       return el;
     },
@@ -1638,9 +1656,6 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       return li;
     },
   };
-
-  /** カードのメモ欄か */
-  const isMemo = (el) => !!(el && el.classList && el.classList.contains('memo'));
 
   /** カードの操作（完了・編集・削除・メモ）を1か所で受け取る */
   function bindCardEvents(root, { onAction, onMemo }) {
@@ -1674,11 +1689,27 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     });
   }
 
+  /** 一覧（#main）のカードで入力中のメモ。{ id, value } を返し、入力中でなければ null */
+  function focusedMemo() {
+    const a = document.activeElement;
+    if (!a || !a.classList || !a.classList.contains('memo') || !$('#main').contains(a)) return null;
+    const host = a.closest('[data-id]');
+    return host ? { id: host.dataset.id, value: a.value } : null;
+  }
+  /** 一覧（#main）を描き直す。描き直す前にフォーカスがあった要素と同じ id の要素へ、フォーカスを戻す */
+  function redrawMain(draw) {
+    const a = document.activeElement;
+    const id = a && a.id && $('#main').contains(a) ? a.id : null;
+    draw();
+    const el = id && document.getElementById(id);
+    if (el && document.activeElement !== el) el.focus({ preventScroll: true });
+  }
+
   class PanelView {
     constructor() {
       this.root = $('#panel');
       this.progNum = $('#prog-num'); this.progPct = $('#prog-pct'); this.progBar = $('#prog-bar');
-      this.add = $('#btn-add'); this.more = $('#btn-more'); this.menu = $('#more-menu');
+      this.add = $('#btn-add'); this.more = $('#btn-more'); this.menu = $('#more-menu'); this.trashLabel = $('#trash-label');
       this.pill = $('#save-pill'); this.note = $('#save-note');
       this.basisLabel = $('#basis-label'); this.tagBox = $('#tag-filter');
       this.segs = $$('.seg button', this.root);
@@ -1732,28 +1763,34 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.segs.forEach((b) => { const k = this.keyOf(b); b.setAttribute('aria-pressed', String(ui[k] === b.dataset[k])); });
       this.basisLabel.textContent = ui.layout === 'calendar' ? '表示日付' : '並び替え';
       this.root.classList.toggle('is-sticky', ui.layout === 'list');
-
-      const sig = JSON.stringify([loaded, tags, ui.tag]);
-      if (sig !== this.tagSig) {
-        this.tagSig = sig;
-        this.tagBox.textContent = '';
-        if (loaded && tags.length) {
-          tags.forEach(({ name, count }) => {
-            const b = button(null, 'tchip ' + tagColor(name));
-            b.dataset.tag = name; b.setAttribute('aria-pressed', String(ui.tag === name));
-            b.title = ui.tag === name ? 'もう一度押すと解除' : `「${name}」のタスクだけを表示`;
-            b.append(h('span', 'tn', name), h('span', 'tcount', String(count)));
-            this.tagBox.append(b);
-          });
-        } else if (loaded) this.tagBox.append(h('span', 'tag-empty', 'タグはまだありません（タスク追加画面で作成できます）'));
-      }
+      this.renderTags(loaded, tags, ui.tag);
 
       this.cmd('export').disabled = !total;
-      $('#trash-label', this.menu).textContent = trashCount ? `ゴミ箱（${trashCount}件）` : 'ゴミ箱';
+      this.trashLabel.textContent = trashCount ? `ゴミ箱（${trashCount}件）` : 'ゴミ箱';
       this.cmd('pc-connect').hidden = !(canBackup && backup.state === 'off');
       this.cmd('pc-disconnect').hidden = backup.state === 'off';
 
       this.renderPill(backup);
+      this.renderNote(loaded, storage, backup);
+    }
+    /** タグの絞り込み（変わったときだけ作り直す） */
+    renderTags(loaded, tags, selected) {
+      const sig = JSON.stringify([loaded, tags, selected]);
+      if (sig === this.tagSig) return;
+      this.tagSig = sig;
+      this.tagBox.textContent = '';
+      if (loaded && tags.length) {
+        tags.forEach(({ name, count }) => {
+          const b = button(null, 'tchip ' + tagColor(name));
+          b.dataset.tag = name; b.setAttribute('aria-pressed', String(selected === name));
+          b.title = selected === name ? 'もう一度押すと解除' : `「${name}」のタスクだけを表示`;
+          b.append(h('span', 'tn', name), h('span', 'tcount', String(count)));
+          this.tagBox.append(b);
+        });
+      } else if (loaded) this.tagBox.append(h('span', 'tag-empty', 'タグはまだありません（タスク追加画面で作成できます）'));
+    }
+    /** 保存先の説明 */
+    renderNote(loaded, storage, backup) {
       let note = '', warn = false;
       if (!loaded) note = '読み込み中…';
       else if (storage.kind === 'cloud') note = '自動保存：オン（あなたのアカウントに保存されます。ほかの人には見えません。別の環境へ移す場合はエクスポート／インポートを使用）';
@@ -1877,6 +1914,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.undated.hidden = !vm.undated;
       this.undatedText.textContent = `${vm.basisLabel}が未設定のタスクが${vm.undated}件あります（カレンダーには載りません）。`;
 
+      this.renderDay(vm);
+      if (vm.focus) { const b = $('.cal-cell.is-selected .cal-date', this.grid); if (b) b.focus(); }
+    }
+    /** 選んだ日のタスク一覧 */
+    renderDay(vm) {
       this.dayTitle.textContent = `${vm.selectedLabel}が${vm.basisLabel}のタスク`;
       this.dayHol.textContent = vm.selectedHoliday; this.dayHol.hidden = !vm.selectedHoliday;
       this.dayCount.textContent = `${vm.dayTasks.length}件`;
@@ -1890,7 +1932,6 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         this.dayList.hidden = true; this.dayEmpty.hidden = false;
         this.dayEmpty.textContent = '該当するタスクはありません。カレンダーの日付をダブルクリックすると、その日のタスクを追加できます。';
       }
-      if (vm.focus) { const b = $('.cal-cell.is-selected .cal-date', this.grid); if (b) b.focus(); }
     }
     cell(c, vm) {
       const cls = ['cal-cell'];
@@ -2038,14 +2079,19 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     checkDates() { const d = this.due.value, g = this.target.value; this.warn.hidden = !(d && g && g > d); }
   }
 
+  /** ドロップされた最初のファイル。なければ null */
+  const droppedFile = (e) => (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) || null;
+
   class ImportDialogView extends DialogView {
     constructor() {
       super('#dlg-import');
       this.step1 = $('#imp-step1'); this.step2 = $('#imp-step2');
       this.err = $('#imp-err'); this.text = $('#imp-text'); this.file = $('#imp-file'); this.drop = $('#imp-drop');
       this.paste = $('#imp-paste'); this.go = $('#imp-go'); this.back = $('#imp-back'); this.warn = $('#imp-replace-warn');
+      this.merge = $('#imp-merge'); this.replace = $('#imp-replace');
+      this.fileName = $('#imp-file-name'); this.summary = $('#imp-summary'); this.skip = $('#imp-skip'); this.newTags = $('#imp-tags'); this.preview = $('#imp-preview');
     }
-    get mode() { return $('#imp-replace').checked ? 'replace' : 'merge'; }
+    get mode() { return this.replace.checked ? 'replace' : 'merge'; }
     bind({ onFile, onText, onApply, onBack, onModeChange, onPageDrop }) {
       $('#imp-pick').addEventListener('click', () => this.file.click());
       this.file.addEventListener('change', () => {
@@ -2058,11 +2104,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       ['dragleave', 'drop'].forEach((ev) => this.drop.addEventListener(ev, (e) => { e.preventDefault(); this.drop.classList.remove('is-over'); }));
       this.drop.addEventListener('drop', (e) => {
         e.stopPropagation();
-        const f = e.dataTransfer && e.dataTransfer.files[0];
+        const f = droppedFile(e);
         if (f) onFile(f);
       });
-      $('#imp-merge').addEventListener('change', onModeChange);
-      $('#imp-replace').addEventListener('change', onModeChange);
+      this.merge.addEventListener('change', onModeChange);
+      this.replace.addEventListener('change', onModeChange);
       this.back.addEventListener('click', onBack);
       this.closeOn('#imp-cancel');
       this.go.addEventListener('click', onApply);
@@ -2070,7 +2116,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       window.addEventListener('dragover', (e) => e.preventDefault());
       window.addEventListener('drop', (e) => {
         e.preventDefault();
-        const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+        const f = droppedFile(e);
         if (f) onPageDrop(f);
       });
     }
@@ -2079,19 +2125,19 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.step1.hidden = false; this.step2.hidden = true; this.err.hidden = true;
       this.text.value = ''; this.paste.open = false;
       this.go.disabled = true; this.back.hidden = true;
-      $('#imp-merge').checked = true; this.warn.hidden = true;
+      this.merge.checked = true; this.warn.hidden = true;
     }
     showError(msg) { this.err.textContent = msg; this.err.hidden = false; }
     showPreview({ name, tasks, skipped, dup, newTags }) {
       this.err.hidden = true;
-      $('#imp-file-name').textContent = name;
-      $('#imp-summary').textContent = `${tasks.length}件のタスクを読み込めます（新規 ${tasks.length - dup}件・同じIDの既存タスク ${dup}件）`;
-      const sk = $('#imp-skip');
+      this.fileName.textContent = name;
+      this.summary.textContent = `${tasks.length}件のタスクを読み込めます（新規 ${tasks.length - dup}件・同じIDの既存タスク ${dup}件）`;
+      const sk = this.skip;
       sk.hidden = !skipped; sk.textContent = skipped ? `タスク名のない${skipped}件は読み込みません。` : '';
-      const nt = $('#imp-tags');
+      const nt = this.newTags;
       nt.hidden = !newTags.length;
       nt.textContent = newTags.length ? `新しく追加されるタグ：${newTags.slice(0, 6).join('、')}${newTags.length > 6 ? ` ほか${newTags.length - 6}件` : ''}` : '';
-      const ul = $('#imp-preview'); ul.textContent = '';
+      const ul = this.preview; ul.textContent = '';
       tasks.slice(0, 5).forEach((t) => {
         const li = h('li');
         li.append(h('span', 'pri p-' + t.priority, PRIORITY[t.priority].label), h('span', 't', t.title));
@@ -2123,7 +2169,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
   class TrashDialogView extends DialogView {
     constructor() {
       super('#dlg-trash');
-      this.list = $('#trash-list'); this.empty = $('#trash-empty'); this.clear = $('#trash-clear');
+      this.list = $('#trash-list'); this.empty = $('#trash-empty'); this.clear = $('#trash-clear'); this.closeBtn = $('#trash-close');
       $('#trash-sub').textContent = `削除したタスクは${TRASH_DAYS}日間ここに残ります。${TRASH_DAYS}日を過ぎると自動で完全に削除されます。`;
     }
     bind({ onRestore, onPurge, onClear }) {
@@ -2153,7 +2199,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.empty.hidden = !!items.length;
       this.clear.disabled = !items.length;
       // 押したボタンが描き直しで消えたら、閉じるボタンへ移す
-      if (this.isOpen && document.activeElement === document.body) $('#trash-close').focus();
+      if (this.isOpen && document.activeElement === document.body) this.closeBtn.focus();
     }
   }
 
@@ -2330,18 +2376,18 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.renderPending = false;
       const ui = this.ui.get();
       const storage = this.tasks.storage;
-      const loaded = storage.loaded;
       const tags = this.tasks.tagList();
-      if (ui.tag && !tags.some((t) => t.name === ui.tag)) ui.tag = '';
-      this.v.panel.render({ loaded, progress: this.tasks.progress(), ui, tags, storage, backup: this.backup, canBackup: this.backup.supported, trashCount: this.tasks.trashed().length });
+      this.ui.dropMissingTag(tags.map((t) => t.name));
+      this.v.panel.render({ loaded: storage.loaded, progress: this.tasks.progress(), ui, tags, storage, backup: this.backup, canBackup: this.backup.supported, trashCount: this.tasks.trashed().length });
       this.renderTrash();
 
       // メモの入力中は一覧を作り直さない（日本語入力の変換中に壊れないように）。入力が終わったら描き直す
-      const a = document.activeElement;
-      if (isMemo(a) && $('#main').contains(a)) { this.deferred = true; return; }
+      if (focusedMemo()) { this.deferred = true; return; }
       this.deferred = false;
-
-      const activeId = a && a.id && $('#main').contains(a) ? a.id : null;
+      redrawMain(() => this.renderMain(ui, storage.loaded));
+    }
+    /** 一覧（読み込み中・空の状態・タイムライン・カレンダー） */
+    renderMain(ui, loaded) {
       const total = this.tasks.size();
       let phase = !loaded ? 'loading' : total === 0 ? 'first' : 'ready';
       const items = phase === 'ready' ? this.tasks.query(ui) : [];
@@ -2359,14 +2405,9 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.v.calendar.render(phase === 'ready' && !listMode ? this.calendarViewModel(ui, items) : { visible: false });
       this.focusCal = false;
       if (jump) this.v.timeline.scrollToToday();
-
-      if (activeId && document.activeElement !== document.getElementById(activeId)) {
-        const el = document.getElementById(activeId);
-        if (el) el.focus({ preventScroll: true });
-      }
     }
     buildGroups(items, basis) {
-      const f = BASIS[basis].field; const year = new Date().getFullYear(); const today = DateUtil.today();
+      const year = new Date().getFullYear(); const today = DateUtil.today();
       const groups = []; let cur = null;
       const groupOf = (key) => {
         if (cur && cur.key === key) return cur;
@@ -2377,10 +2418,10 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         return cur;
       };
       // 今日の目印：今日以降で最初のタスクの手前（なければ日付つきタスクの最後）に入れる。日付つきが1件もなければ出さない
-      let marked = !items.some((t) => t[f]);
+      let marked = !items.some((t) => Task.dateOf(t, basis));
       const mark = () => { marked = true; groupOf(today.slice(0, 7)).items.push({ marker: 'today', date: today }); };
       items.forEach((t) => {
-        const d = t[f];
+        const d = Task.dateOf(t, basis);
         if (!marked && (!d || d >= today)) mark();
         groupOf(d ? d.slice(0, 7) : 'none').items.push(t);
       });
@@ -2388,13 +2429,12 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       return groups;
     }
     calendarViewModel(ui, items) {
-      const basis = BASIS[ui.basis];
       const [y, m] = ui.month.split('-').map(Number);
       const first = new Date(y, m - 1, 1);
       const days = new Date(y, m, 0).getDate();
       const weeks = Math.ceil((first.getDay() + days) / 7);
       const start = new Date(y, m - 1, 1 - first.getDay());
-      const byDate = this.tasks.groupByDate(items, basis.field);
+      const byDate = Task.groupByDate(items, ui.basis);
       const today = DateUtil.today();
       const cells = [];
       for (let i = 0; i < weeks * 7; i++) {
@@ -2407,8 +2447,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         });
       }
       return {
-        visible: true, monthLabel: `${y}年${m}月`, basis: ui.basis, basisLabel: basis.label, cells,
-        undated: items.filter((t) => !t[basis.field]).length,
+        visible: true, monthLabel: `${y}年${m}月`, basis: ui.basis, basisLabel: BASIS[ui.basis].label, cells,
+        undated: items.filter((t) => !Task.dateOf(t, ui.basis)).length,
         selectedLabel: DateUtil.fmtLong(ui.selected), selectedHoliday: JpHoliday.name(ui.selected),
         dayTasks: byDate.get(ui.selected) || [], focus: this.focusCal,
       };
@@ -2438,10 +2478,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (this.deferred) setTimeout(() => this.scheduleRender(), 0);
     }
     flushMemo() {
-      const a = document.activeElement;
-      if (!isMemo(a)) return;
-      const host = a.closest('[data-id]');
-      if (host) this.saveMemo(host.dataset.id, a.value);
+      const m = focusedMemo();
+      if (m) this.saveMemo(m.id, m.value);
     }
     presetFromFilters() {
       const ui = this.ui.get();
@@ -2468,7 +2506,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       const fields = Object.assign({}, f);
       if (fields.repeat && !fields.dueDate && !fields.targetDate) fields.dueDate = DateUtil.nextWeekday(fields.repeat.weekday, null, true);
       const base = this.editingId ? this.tasks.get(this.editingId) : null;
-      const t = base ? Task.normalize(Object.assign({}, base, fields, { updatedAt: DateUtil.nowIso() })) : Task.create(fields);
+      const t = base ? Task.normalize(Task.patch(base, fields)) : Task.create(fields);
       this.tasks.put([t]);
       this.v.taskDialog.close();
       if (base) this.v.toast.show('保存しました'); else this.announceAdded(t);
@@ -2490,7 +2528,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     isShown(t) {
       const ui = this.ui.get();
       if (!Task.matchesFilter(t, ui)) return false;
-      if (ui.layout === 'calendar') { const d = t[BASIS[ui.basis].field]; return !!d && d.slice(0, 7) === ui.month; }
+      if (ui.layout === 'calendar') { const d = Task.dateOf(t, ui.basis); return !!d && d.slice(0, 7) === ui.month; }
       return true;
     }
     announceAdded(t) {
@@ -2501,7 +2539,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       const ui = this.ui.get();
       const patch = { status: 'all', pri: '', tag: '' };
       if (ui.layout === 'calendar') {
-        const d = t[BASIS[ui.basis].field];
+        const d = Task.dateOf(t, ui.basis);
         if (d) Object.assign(patch, { selected: d, month: d.slice(0, 7) }); else patch.layout = 'list';
       }
       this.ui.set(patch);
