@@ -85,6 +85,11 @@ button,input,select,textarea{font:inherit;color:inherit}
 
 /* 操作パネル */
 .panel{display:grid;gap:14px;padding:20px 22px 16px;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+/* リスト表示ではスクロールしても上に残す（画面の高さが足りないときは固定しない） */
+@media (min-height:640px){
+  .panel.is-sticky{position:sticky;top:0;z-index:20;box-shadow:var(--shadow-lg)}
+  html:has(.panel.is-sticky){scroll-padding-top:calc(var(--panel-h,0px) + 12px)}
+}
 .panel-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
 .prog-text{margin:0;font-size:15px;font-weight:700;color:var(--ink)}
 .prog-text b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
@@ -971,8 +976,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (d === null) return '';
       return d < 0 ? 'overdue' : d === 0 ? 'today' : d <= SOON_DAYS ? 'soon' : '';
     }
-    /** タスクの期限の状態（締め切り日で判定）。完了済みと締め切り日なしは '' */
-    const urgency = (t) => (t.done || !t.dueDate) ? '' : dateState(t.dueDate);
+    /** タスクの期限の状態（既定は締め切り日、basis が 'target' なら完了目標日で判定）。完了済みと日付なしは '' */
+    const urgency = (t, basis = 'due') => { const s = t[BASIS[basis].field]; return (t.done || !s) ? '' : dateState(s); };
 
     function matchesFilter(t, { status, pri, tag }) {
       if (status === 'open' && t.done) return false;
@@ -1552,9 +1557,9 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       }
       return chip;
     },
-    /** カード1枚。prefix はタイムライン（tl）とカレンダーの日別一覧（d）で要素の id を分けるため */
-    card(t, prefix) {
-      const u = Task.urgency(t);
+    /** カード1枚。prefix はタイムライン（tl）とカレンダーの日別一覧（d）で要素の id を分けるため。basis は赤・黄の色付けに使う日付 */
+    card(t, prefix, basis = 'due') {
+      const u = Task.urgency(t, basis);
       const art = h('article', 'card' + (t.done ? ' is-done' : '') + (u === 'overdue' ? ' is-over' : u === 'today' ? ' is-today' : ''));
       art.dataset.id = t.id;
       const id = (part) => `${prefix}-${part}-${t.id}`;
@@ -1629,7 +1634,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     },
     row(t, basis) {
       const li = h('li', 'tl-row');
-      li.append(this.badge(t, basis), this.card(t, 'tl'));
+      li.append(this.badge(t, basis), this.card(t, 'tl', basis));
       return li;
     },
   };
@@ -1678,6 +1683,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.basisLabel = $('#basis-label'); this.tagBox = $('#tag-filter');
       this.segs = $$('.seg button', this.root);
       this.tagSig = null; this.pillSig = null;
+      // 固定表示のパネルにフォーカス先が隠れないよう、パネルの高さを scroll-padding に渡す
+      if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--panel-h', this.root.offsetHeight + 'px')).observe(this.root);
     }
     keyOf(b) { return ['layout', 'status', 'basis', 'pri'].find((k) => k in b.dataset); }
     cmd(name) { return $(`[data-cmd="${name}"]`, this.menu); }
@@ -1724,6 +1731,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.progBar.style.width = (loaded ? pct : 0) + '%';
       this.segs.forEach((b) => { const k = this.keyOf(b); b.setAttribute('aria-pressed', String(ui[k] === b.dataset[k])); });
       this.basisLabel.textContent = ui.layout === 'calendar' ? '表示日付' : '並び替え';
+      this.root.classList.toggle('is-sticky', ui.layout === 'list');
 
       const sig = JSON.stringify([loaded, tags, ui.tag]);
       if (sig !== this.tagSig) {
@@ -1875,7 +1883,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.dayList.textContent = '';
       if (vm.dayTasks.length) {
         const rows = document.createDocumentFragment();
-        vm.dayTasks.forEach((t) => { const li = h('li'); li.append(TaskCard.card(t, 'd')); rows.append(li); });
+        vm.dayTasks.forEach((t) => { const li = h('li'); li.append(TaskCard.card(t, 'd', vm.basis)); rows.append(li); });
         this.dayList.append(rows);
         this.dayList.hidden = false; this.dayEmpty.hidden = true;
       } else {
@@ -1909,7 +1917,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         const pills = h('div', 'cal-pills');
         const max = 5;
         c.tasks.slice(0, max).forEach((t) => {
-          const u = Task.urgency(t);
+          const u = Task.urgency(t, vm.basis);
           const p = button(t.title, 'cal-pill' + (t.done ? ' is-done' : u ? ' u-' + u : ''));
           p.tabIndex = -1; p.dataset.id = t.id; p.title = t.title;
           pills.append(p);
