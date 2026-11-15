@@ -1859,12 +1859,15 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       li.append(h('span', 'tn-pill', '今日'), h('span', 'tn-bar', DateUtil.fmtShort(date)));
       return li;
     }
-    /** 今日のラインが画面の上半分に見えていなければ、画面の上のほうまで送る（直前のカードの端は少し見えるように残す） */
+    /** 今日のラインが画面の上半分に見えていなければ、画面の上のほうまで送る（直前のカードの端は少し見えるように残す）。
+     *  リスト表示では操作パネルが上に固定されるので、パネルの下を見える範囲として扱う */
     scrollToToday() {
       const el = $('.tl-now', this.root); if (!el) return;
+      const panel = $('#panel');
+      const cover = panel && getComputedStyle(panel).position === 'sticky' ? panel.offsetHeight : 0;
       const top = el.getBoundingClientRect().top;
-      if (top >= 0 && top < window.innerHeight / 2) return;
-      window.scrollTo({ top: window.scrollY + top - 96, behavior: 'instant' });
+      if (top >= cover + 12 && top < cover + (window.innerHeight - cover) / 2) return;
+      window.scrollTo({ top: window.scrollY + top - cover - 48, behavior: 'instant' });
     }
   }
 
