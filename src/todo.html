@@ -90,6 +90,13 @@ button,input,select,textarea{font:inherit;color:inherit}
   .panel.is-sticky{position:sticky;top:0;z-index:20;box-shadow:var(--shadow-lg)}
   html:has(.panel.is-sticky){scroll-padding-top:calc(var(--panel-h,0px) + 12px)}
 }
+/* スクロール中は進捗と追加ボタンだけの細い帯にたたむ。帯をクリックすると元に戻す */
+.panel-open{display:none}
+.panel.is-mini{gap:8px;padding-block:10px 8px;cursor:pointer}
+.panel.is-mini .row-switch,.panel.is-mini .filters,.panel.is-mini .save-note,.panel.is-mini .save-pill,.panel.is-mini .menu-wrap{display:none}
+.panel.is-mini .progress{height:4px}
+.panel.is-mini .panel-open{display:grid}
+.panel.is-mini .prog-text b{font-size:17px}
 .panel-top{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
 .prog-text{margin:0;font-size:15px;font-weight:700;color:var(--ink)}
 .prog-text b{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:.02em}
@@ -109,6 +116,8 @@ button,input,select,textarea{font:inherit;color:inherit}
 .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--red-bar)}
 .dot.p-medium{background:var(--orange-mid)}
 .dot.p-low{background:var(--green)}
+.fsearch{flex:1 1 240px;flex-wrap:nowrap}
+.inp.q{min-height:38px;padding:5px 12px;background:var(--surface)}
 .tags-row{align-items:flex-start;flex-wrap:nowrap;gap:10px 14px}
 .tags-row .flabel{padding-top:4px}
 .tag-filter{display:flex;flex-wrap:wrap;gap:6px;min-width:0;flex:1}
@@ -215,9 +224,16 @@ button,input,select,textarea{font:inherit;color:inherit}
 .rel.overdue{color:var(--red)}
 .rel.soon{color:var(--orange)}
 .rel.today{padding:0 8px;border-radius:999px;background:var(--yellow-strong);color:var(--ink)}
-.card-extra{margin-top:8px}
+.card-extra{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
 .repeat-chip{display:inline-flex;align-items:center;gap:5px;padding:1px 9px;border-radius:6px;background:var(--blue-soft);color:var(--blue);font-size:12px;font-weight:700}
 .repeat-chip svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.sub-chip{display:inline-flex;align-items:center;padding:1px 9px;border-radius:6px;background:var(--gray-soft);color:var(--gray);font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+.sub-chip.is-all{background:var(--accent-soft);color:var(--accent)}
+.subs{display:grid;gap:2px;margin:6px 0 0;padding:0;list-style:none}
+.sub{display:flex;align-items:flex-start;gap:8px;width:fit-content;max-width:100%;min-height:28px;padding:2px 0;font-size:14px;cursor:pointer}
+.sub input{flex:none;width:16px;height:16px;margin:4px 0 0;accent-color:var(--accent);cursor:pointer}
+.sub span{min-width:0;overflow-wrap:anywhere}
+.sub.is-done span{color:var(--ink-3);text-decoration:line-through}
 .card > .memo{grid-column:2 / -1}
 .memo{display:block;width:100%;min-height:2.3em;max-height:16em;margin-top:8px;padding:6px 10px;border:1px solid transparent;border-radius:8px;background:transparent;color:var(--ink);font-size:14px;line-height:1.6;resize:vertical;field-sizing:content}
 .memo::placeholder{color:var(--ink-3)}
@@ -226,11 +242,13 @@ button,input,select,textarea{font:inherit;color:inherit}
 .memo:focus{border-color:var(--accent);background:var(--surface);outline:none;box-shadow:0 0 0 3px var(--accent-soft)}
 .card-side{display:flex;flex-direction:column;align-items:flex-end;gap:6px}
 .done-pill{padding:1px 10px;border-radius:999px;background:var(--accent-soft);color:var(--accent);font-size:12px;font-weight:700;white-space:nowrap}
-.card-acts{display:flex;gap:2px;opacity:0;transition:opacity .12s}
+.card-acts{display:flex;align-items:center;gap:2px;opacity:0;transition:opacity .12s}
+.mini-btn{flex:none;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink-3);font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
+.mini-btn:hover{background:var(--wash);color:var(--ink)}
 .card:hover .card-acts,.card:focus-within .card-acts{opacity:1}
 @media (hover:none){.card-acts{opacity:1}}
 .card.is-done .card-title{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--ink-3)}
-.card.is-done .pri,.card.is-done .tag,.card.is-done .card-dates,.card.is-done .card-extra{opacity:.6}
+.card.is-done .pri,.card.is-done .tag,.card.is-done .card-dates,.card.is-done .card-extra,.card.is-done .subs{opacity:.6}
 
 /* カレンダー */
 .cal-card,.day-panel{padding:18px 18px 16px;border:1px solid var(--line);border-radius:16px;background:var(--surface);box-shadow:var(--shadow)}
@@ -318,6 +336,11 @@ textarea.code{font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
 .tag-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
 .tag-row .inp{flex:1 1 200px;width:auto}
 .f-tags{display:flex;flex-wrap:wrap;gap:6px}
+.f-subs-box{display:grid;gap:8px}
+.f-subs{display:grid;gap:6px;margin:0;padding:0;list-style:none}
+.f-subs li{display:flex;align-items:center;gap:8px}
+.f-subs input[type="checkbox"]{flex:none;width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.f-subs .inp{flex:1;min-height:38px;padding:6px 11px}
 .stamp{margin:0;font-size:12px;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .kbd-hint{font-size:12px;color:var(--ink-3)}
 .cf-msg{margin:0}
@@ -381,6 +404,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
   .panel{padding:16px 14px 14px}
   .panel-actions{margin-left:0;width:100%;justify-content:flex-start}
   .row-switch .seg{width:100%}
+  .panel.is-mini .panel-actions{width:auto;margin-left:auto}
   .row-switch .seg button{flex:1;justify-content:center}
   .cal-card,.day-panel{padding:14px 10px 12px}
   .cal-week,.cal-grid{gap:3px}
@@ -438,6 +462,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
             <button type="button" role="menuitem" data-cmd="trash"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 6h12M8 6V4.5h4V6M5.8 6l.8 10h6.8l.8-10M8.5 9v4.5M11.5 9v4.5"/></svg><span id="trash-label">ゴミ箱</span></button>
           </div>
         </div>
+        <button type="button" class="icon-btn panel-open" id="btn-panel-open" aria-label="表示の切り替え・絞り込みを開く" title="表示の切り替え・絞り込みを開く"><svg viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 8l4.5 4.5L14.5 8"/></svg></button>
       </div>
     </div>
     <div class="progress" aria-hidden="true"><i id="prog-bar"></i></div>
@@ -470,6 +495,10 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
             <button type="button" data-pri="low" aria-pressed="false"><i class="dot p-low" aria-hidden="true"></i>低</button>
           </div>
         </div>
+        <div class="fgroup fsearch">
+          <label class="flabel" for="q">検索</label>
+          <input type="search" id="q" class="inp q" maxlength="100" placeholder="タスク名・メモ・タグ・サブタスク" enterkeyhint="search" autocomplete="off">
+        </div>
       </div>
       <div class="frow tags-row">
         <span class="flabel" id="tag-label">タグ</span>
@@ -493,7 +522,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
 
     <div class="empty-card" id="empty-filter" hidden>
       <h2>条件に合うタスクはありません</h2>
-      <p id="empty-filter-text">完了状態・優先度・タグの絞り込みを変えてみてください。</p>
+      <p id="empty-filter-text">検索の言葉や、完了状態・優先度・タグの絞り込みを変えてみてください。</p>
       <div class="empty-row"><button type="button" class="btn" id="ef-reset">絞り込みを解除</button></div>
     </div>
 
@@ -576,6 +605,15 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
           <input type="text" id="f-tag-new" class="inp" maxlength="200" placeholder="新しいタグ（カンマ区切り）">
         </div>
         <div class="f-tags" id="f-tags" hidden></div>
+        <div class="f-subs-box">
+          <span class="flabel">サブタスク（小さな手順）<span class="count" id="f-subs-count"></span></span>
+          <ul class="f-subs" id="f-subs" aria-label="サブタスク" hidden></ul>
+          <div class="tag-row">
+            <label class="sr" for="f-sub-new">新しいサブタスク</label>
+            <input type="text" id="f-sub-new" class="inp" maxlength="200" enterkeyhint="enter">
+            <button type="button" class="btn" id="f-sub-add">追加</button>
+          </div>
+        </div>
       </div>
       <p class="stamp" id="f-stamp" hidden></p>
     </div>
@@ -689,11 +727,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
  * TODO — MVC 構成
  *
  *   Model       データと業務ルール。DOM には触れない。
- *     Task              タスク1件の正規化・判定（期限の状態・絞り込み・並べ替え・毎週繰り返し）
+ *     Task              タスク1件の正規化・判定（期限の状態・絞り込み・検索・並べ替え・サブタスク・先送り・毎週繰り返し）
  *     LocalRepository   このブラウザ（localStorage）への保存
  *     CloudRepository   アカウント（自分専用領域）への保存
  *     TaskModel         タスク一覧とタグ一覧の保持・追加・更新・削除・検索・入出力
- *     ViewStateModel    表示条件（表示方法・完了状態・日付の基準・優先度・タグ・表示中の月と日）
+ *     ViewStateModel    表示条件（表示方法・完了状態・日付の基準・優先度・タグ・検索の言葉・表示中の月と日）
  *
  *   View        DOM の描画と操作の受け取りだけを担当。モデルを直接変更しない。
  *     PanelView / PlaceholderView / TimelineView / CalendarView
@@ -860,7 +898,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
   const UI_KEY = 'todo.ui.v3';
   const SOON_DAYS = 3;                                 // 「期限間近」とみなす日数
   const TRASH_DAYS = 60;                               // ゴミ箱に残す日数。過ぎたら完全に削除する
-  const LIMIT = { title: 200, memo: 5000, tagName: 40, tagsPerTask: 12 };   // 文字数・個数の上限
+  const LIMIT = { title: 200, memo: 5000, tagName: 40, tagsPerTask: 12, subtasks: 30 };   // 文字数・個数の上限（サブタスク名はタスク名と同じ）
 
   /** タスク1件に関する規則 */
   const Task = (() => {
@@ -876,7 +914,8 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       return 'medium';
     }
     const validId = (s) => typeof s === 'string' && /^[A-Za-z0-9_\-.~:@+]{1,120}$/.test(s) && s !== '.' && s !== '..';
-    const newId = () => 't-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
+    /** 新しい ID。タスクは t-、サブタスクは s- で始める */
+    const newId = (prefix = 't') => prefix + '-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8);
 
     /* タグ名の規則：前後の空白を除き40文字まで。「__」で始まる名前は内部用に予約 */
     function cleanTagName(v) {
@@ -894,6 +933,24 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (typeof v === 'string') return splitTagText(v);
       return [];
     }
+
+    /** サブタスクを { id, title, done } の並びに揃える。文字列だけの並びも読む。名前が空のものは捨てる */
+    function cleanSubtasks(v) {
+      const out = []; const seen = new Set();
+      (Array.isArray(v) ? v : []).forEach((x) => {
+        const o = x && typeof x === 'object' ? x : { title: x };
+        const title = squash(str(o.title ?? o.name ?? o.text ?? o.content)).slice(0, LIMIT.title);
+        if (!title || out.length >= LIMIT.subtasks) return;
+        const id = validId(o.id) && !seen.has(o.id) ? o.id : newId('s');
+        seen.add(id);
+        out.push({ id, title, done: o.done === true || o.completed === true || o.checked === true });
+      });
+      return out;
+    }
+    /** サブタスクの進み具合 */
+    const subProgress = (t) => ({ done: t.subtasks.filter((s) => s.done).length, total: t.subtasks.length });
+    /** サブタスク1件の完了・未完了を切り替えた写しを返す */
+    const subToggled = (t, subId) => patch(t, { subtasks: t.subtasks.map((s) => (s.id === subId ? Object.assign({}, s, { done: !s.done }) : s)) });
 
     function parseWeekday(v) {
       if (typeof v === 'number' && v >= 0 && v <= 6) return Math.floor(v);
@@ -944,6 +1001,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         priority: normPriority(pick(raw, ['priority', 'prio', 'importance', '優先度'])),
         tags,
         memo: str(pick(raw, ['memo', 'note', 'notes', 'description', 'detail', 'details', 'メモ', '備考'])).slice(0, LIMIT.memo),
+        subtasks: cleanSubtasks(pick(raw, ['subtasks', 'checklist', 'steps', 'children', 'サブタスク'])),
         dueDate,
         targetDate,
         repeat: parseRepeat(raw, dueDate),
@@ -985,12 +1043,33 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     /** タスクの期限の状態（既定は締め切り日、basis が 'target' なら完了目標日で判定）。完了済みと日付なしは '' */
     const urgency = (t, basis = 'due') => { const s = dateOf(t, basis); return (t.done || !s) ? '' : dateState(s); };
 
-    function matchesFilter(t, { status, pri, tag }) {
+    /** 検索用に文字を揃える（全角と半角、大文字と小文字を区別しない） */
+    const fold = (s) => squash(String(s).normalize('NFKC').toLowerCase());
+    /** 検索の言葉（空白で区切る）がすべて、タスク名・メモ・タグ・サブタスクのどこかに入っているか。言葉が空なら true */
+    /**
+     * 日付を days 日先へ送った写しを作り、{ task, kind, from, date } を返す（kind は動かした日付の種類、from は元の日付）。
+     * 動かすのは日付の基準の日付。無ければもう一方の日付、どちらも無ければ日付の基準の日付を新しく入れる。
+     * 今日より前の日付（と日付なし）は、今日から数える（期限切れを1日送ると明日になる）
+     */
+    function postponed(t, basis, days) {
+      const other = basis === 'due' ? 'target' : 'due';
+      const kind = dateOf(t, basis) || !dateOf(t, other) ? basis : other;
+      const from = dateOf(t, kind), today = DateUtil.today();
+      const date = DateUtil.addDays(days, from && from > today ? from : today);
+      return { task: patch(t, { [BASIS[kind].field]: date }), kind, from, date };
+    }
+    function matchesText(t, q) {
+      const words = fold(q || '').split(' ').filter(Boolean);
+      if (!words.length) return true;
+      const text = fold([t.title, t.memo].concat(t.tags, t.subtasks.map((s) => s.title)).join('\n'));
+      return words.every((w) => text.includes(w));
+    }
+    function matchesFilter(t, { status, pri, tag, q }) {
       if (status === 'open' && t.done) return false;
       if (status === 'done' && !t.done) return false;
       if (pri && t.priority !== pri) return false;
       if (tag && !t.tags.includes(tag)) return false;
-      return true;
+      return matchesText(t, q);
     }
     const cmpDate = (x, y) => (x && y) ? cmpStr(x, y) : x ? -1 : y ? 1 : 0;   // 日付なしは後ろ
     const cmpPri = (a, b) => PRIORITY[a.priority].rank - PRIORITY[b.priority].rank;
@@ -1026,9 +1105,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         if (t.targetDate) targetDate = DateUtil.addDays(DateUtil.between(t.dueDate, t.targetDate), next);
       } else if (t.targetDate) targetDate = next;
       else dueDate = next;
-      return create({ title: t.title, priority: t.priority, tags: t.tags.slice(), memo: t.memo, dueDate, targetDate, repeat: Object.assign({}, t.repeat) });
+      // サブタスクは未完了に戻して引き継ぐ
+      const subtasks = t.subtasks.map((s) => ({ title: s.title }));
+      return create({ title: t.title, priority: t.priority, tags: t.tags.slice(), memo: t.memo, subtasks, dueDate, targetDate, repeat: Object.assign({}, t.repeat) });
     }
-    return { newId, normalize, create, patch, toggled, trashDaysLeft, cleanTags, splitTagText, dateOf, dateState, urgency, matchesFilter, sorter, groupByDate, repeatLabel, nextOccurrence };
+    return { newId, normalize, create, patch, toggled, trashDaysLeft, cleanTags, splitTagText, subProgress, subToggled, postponed, dateOf, dateState, urgency, matchesFilter, sorter, groupByDate, repeatLabel, nextOccurrence };
   })();
 
   /** 保存先：このブラウザ */
@@ -1186,7 +1267,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.emit({ type: 'change', source: 'local' });
       return p;
     }
-    /** 完了・未完了を切り替える。毎週繰り返しのタスクを完了にしたら翌週分を作って返す（作るのは1回だけ） */
+    /** 完了・未完了を切り替え、{ task, next } を返す。next は毎週繰り返しのタスクを完了にしたときに作る翌週分（作るのは1回だけ。作らなければ null） */
     toggleDone(id) {
       const t = this.get(id); if (!t) return null;
       const updated = Task.toggled(t);
@@ -1197,7 +1278,39 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         updated.spawnedId = next.id;
       }
       this.put(next ? [updated, next] : [updated]);
-      return next;
+      return { task: updated, next };
+    }
+    /** 完了を取り消す。完了のときに作った翌週分（nextId）は、作ったままで手が入っていなければ一緒に消す */
+    undoComplete(id, nextId) {
+      const t = this.get(id); if (!t || !t.done) return false;
+      const updated = Task.toggled(t);
+      const next = nextId && this.get(nextId);
+      if (next && !next.done && !next.deletedAt && next.updatedAt === next.createdAt) {
+        updated.spawnedId = null;
+        this.remove([next.id]);
+      }
+      this.put([updated]);
+      return true;
+    }
+    /** 日付を days 日先へ送る。Task.postponed() の結果を返す */
+    postpone(id, basis, days) {
+      const t = this.get(id); if (!t) return null;
+      const r = Task.postponed(t, basis, days);
+      this.put([r.task]);
+      return r;
+    }
+    /** 先送りを取り消す（r は postpone() の結果）。そのあと日付が変えられていたら何もしない */
+    undoPostpone(r) {
+      const f = BASIS[r.kind].field;
+      const t = this.get(r.task.id);
+      if (!t || t[f] !== r.date) return false;
+      this.put([Task.patch(t, { [f]: r.from })]);
+      return true;
+    }
+    /** サブタスク1件の完了・未完了を切り替える */
+    toggleSubtask(id, subId) {
+      const t = this.get(id);
+      if (t && t.subtasks.some((s) => s.id === subId)) this.put([Task.subToggled(t, subId)]);
     }
 
     /* --- ゴミ箱 --- */
@@ -1252,11 +1365,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       const tasks = this.active()
         .sort((a, b) => cmpStr(a.createdAt, b.createdAt))
         .map((t) => ({
-          id: t.id, title: t.title, priority: t.priority, tags: t.tags, memo: t.memo,
+          id: t.id, title: t.title, priority: t.priority, tags: t.tags, memo: t.memo, subtasks: t.subtasks,
           dueDate: t.dueDate, targetDate: t.targetDate, repeat: t.repeat, done: t.done,
           createdAt: t.createdAt, updatedAt: t.updatedAt, completedAt: t.completedAt,
         }));
-      return JSON.stringify({ app: 'TODO', format: 'todo-tasks', version: 2, exportedAt: DateUtil.nowIso(), count: tasks.length, tags: this.tagNames(), tasks }, null, 2);
+      return JSON.stringify({ app: 'TODO', format: 'todo-tasks', version: 3, exportedAt: DateUtil.nowIso(), count: tasks.length, tags: this.tagNames(), tasks }, null, 2);
     }
     static parseImport(text) {
       let data;
@@ -1284,7 +1397,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     constructor() {
       super();
       const t = DateUtil.today();
-      this.state = { layout: 'list', status: 'all', basis: 'due', pri: '', tag: '', month: t.slice(0, 7), selected: t };
+      this.state = { layout: 'list', status: 'all', basis: 'due', pri: '', tag: '', q: '', month: t.slice(0, 7), selected: t };
       this.persistKeys = ['layout', 'status', 'basis'];
       this.restore();
     }
@@ -1582,7 +1695,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       art.dataset.id = t.id;
       const id = (part) => `${prefix}-${part}-${t.id}`;
       const [memoLabel, memo] = this.memo(t, id('memo'));
-      art.append(this.check(t, id('done')), this.main(t, id('title')), this.side(t, id), memoLabel, memo);   // メモはカードの幅いっぱいに置く
+      art.append(this.check(t, id('done')), this.main(t, id), this.side(t, id), memoLabel, memo);   // メモはカードの幅いっぱいに置く
       return art;
     },
     check(t, id) {
@@ -1594,12 +1707,12 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       lab.append(cb, box);
       return lab;
     },
-    /** タスク名・優先度・タグ・日付・繰り返し */
-    main(t, titleId) {
+    /** タスク名・優先度・タグ・日付・繰り返し・サブタスク */
+    main(t, id) {
       const main = h('div', 'card-main');
       const head = h('div', 'card-head');
       const title = button(t.title, 'card-title', 'edit');
-      title.id = titleId; title.title = 'クリックで編集';
+      title.id = id('title'); title.title = 'クリックで編集';
       const priLabel = '優先度 ' + PRIORITY[t.priority].label;
       const pri = h('span', 'pri p-' + t.priority, PRIORITY[t.priority].label);
       pri.setAttribute('role', 'img'); pri.setAttribute('aria-label', priLabel); pri.title = priLabel;
@@ -1611,24 +1724,50 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       dates.append(this.dateChip('due', t.dueDate, t.done), this.dateChip('target', t.targetDate, t.done));
       main.append(dates);
 
-      if (t.repeat) {
+      const sp = Task.subProgress(t);
+      if (t.repeat || sp.total) {
         const ex = h('div', 'card-extra');
-        const rc = h('span', 'repeat-chip'); rc.innerHTML = ICON.repeat; rc.append(Task.repeatLabel(t.repeat));
-        ex.append(rc); main.append(ex);
+        if (t.repeat) { const rc = h('span', 'repeat-chip'); rc.innerHTML = ICON.repeat; rc.append(Task.repeatLabel(t.repeat)); ex.append(rc); }
+        if (sp.total) ex.append(h('span', 'sub-chip' + (sp.done === sp.total ? ' is-all' : ''), `サブタスク ${sp.done}/${sp.total}`));
+        main.append(ex);
       }
+      if (sp.total) main.append(this.subs(t, id));
       return main;
     },
-    /** 完了の印と、編集・削除のボタン */
+    /** サブタスクのチェックリスト */
+    subs(t, id) {
+      const ul = h('ul', 'subs');
+      ul.setAttribute('aria-label', `「${t.title}」のサブタスク`);
+      t.subtasks.forEach((s) => {
+        const li = h('li');
+        const lab = h('label', 'sub' + (s.done ? ' is-done' : ''));
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.id = id('sub-' + s.id); cb.checked = s.done; cb.dataset.act = 'sub'; cb.dataset.sub = s.id;
+        lab.append(cb, h('span', null, s.title));
+        li.append(lab); ul.append(li);
+      });
+      return ul;
+    },
+    /** 完了の印と、先送り（未完了のときだけ）・編集・削除のボタン */
     side(t, id) {
       const side = h('div', 'card-side');
       if (t.done) side.append(h('span', 'done-pill', '完了'));
       const acts = h('div', 'card-acts');
+      if (!t.done) acts.append(this.postpone(t, id('p1'), 1, '＋1日', '1日'), this.postpone(t, id('p7'), 7, '＋1週', '1週間'));
       acts.append(
         iconButton(ICON.edit, 'icon-btn', 'edit', { id: id('edit'), label: `「${t.title}」を編集`, tip: '編集' }),
         iconButton(ICON.del, 'icon-btn del', 'delete', { id: id('del'), label: `「${t.title}」を削除`, tip: '削除' }),
       );
       side.append(acts);
       return side;
+    },
+    /** 日付を先へ送るボタン */
+    postpone(t, id, days, text, span) {
+      const b = button(text, 'mini-btn', 'postpone');
+      b.id = id; b.dataset.days = String(days);
+      b.setAttribute('aria-label', `「${t.title}」の日付を${span}先へ送る`);
+      b.title = `日付を${span}先へ送る（期限切れのときは今日から数える）`;
+      return b;
     },
     /** メモ欄（読み上げ用のラベルと一緒に返す） */
     memo(t, id) {
@@ -1657,20 +1796,20 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     },
   };
 
-  /** カードの操作（完了・編集・削除・メモ）を1か所で受け取る */
+  /** カードの操作（完了・サブタスクの完了・先送り・編集・削除・メモ）を1か所で受け取る。onAction(操作, タスクID, サブタスクIDか先送りの日数) */
   function bindCardEvents(root, { onAction, onMemo }) {
     const memoOf = (e) => (e.target.matches && e.target.matches('textarea.memo') ? e.target : null);
     root.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]');
-      if (!b || !root.contains(b) || b.dataset.act === 'toggle' || b.dataset.act === 'memo') return;
+      if (!b || !root.contains(b) || ['toggle', 'sub', 'memo'].includes(b.dataset.act)) return;
       const host = b.closest('[data-id]');
-      if (host) onAction(b.dataset.act, host.dataset.id);
+      if (host) onAction(b.dataset.act, host.dataset.id, b.dataset.days);
     });
     root.addEventListener('change', (e) => {
       const cb = e.target;
-      if (!cb.matches || !cb.matches('input[data-act="toggle"]')) return;
+      if (!cb.matches || !cb.matches('input[data-act="toggle"],input[data-act="sub"]')) return;
       const host = cb.closest('[data-id]');
-      if (host) onAction('toggle', host.dataset.id);
+      if (host) onAction(cb.dataset.act, host.dataset.id, cb.dataset.sub);
     });
     root.addEventListener('input', (e) => {
       const m = memoOf(e); if (!m) return;
@@ -1711,9 +1850,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.progNum = $('#prog-num'); this.progPct = $('#prog-pct'); this.progBar = $('#prog-bar');
       this.add = $('#btn-add'); this.more = $('#btn-more'); this.menu = $('#more-menu'); this.trashLabel = $('#trash-label');
       this.pill = $('#save-pill'); this.note = $('#save-note');
-      this.basisLabel = $('#basis-label'); this.tagBox = $('#tag-filter');
+      this.basisLabel = $('#basis-label'); this.tagBox = $('#tag-filter'); this.search = $('#q');
       this.segs = $$('.seg button', this.root);
       this.tagSig = null; this.pillSig = null;
+      this.masthead = $('.masthead'); this.openBtn = $('#btn-panel-open');
+      this.mini = false; this.openedAt = null; this.miniQueued = false;
       // 固定表示のパネルにフォーカス先が隠れないよう、パネルの高さを scroll-padding に渡す
       if (window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--panel-h', this.root.offsetHeight + 'px')).observe(this.root);
     }
@@ -1721,8 +1862,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     cmd(name) { return $(`[data-cmd="${name}"]`, this.menu); }
     /** メニューの中で、今押せる項目 */
     menuItems() { return $$('[data-cmd]', this.menu).filter((b) => !b.hidden && !b.disabled); }
-    bind({ onAdd, onCommand, onSet, onTag, onResumeBackup }) {
+    bind({ onAdd, onCommand, onSet, onTag, onSearch, onResumeBackup }) {
       this.add.addEventListener('click', onAdd);
+      // 日本語入力の変換中は絞り込まず、確定したときに絞り込む
+      this.search.addEventListener('input', (e) => { if (!e.isComposing) onSearch(this.search.value); });
+      this.search.addEventListener('compositionend', () => onSearch(this.search.value));
       this.more.addEventListener('click', () => (this.menu.hidden ? this.openMenu() : this.closeMenu()));
       this.menu.addEventListener('click', (e) => {
         const b = e.target.closest('[data-cmd]');
@@ -1742,6 +1886,47 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.segs.forEach((b) => b.addEventListener('click', () => { const k = this.keyOf(b); onSet({ [k]: b.dataset[k] }); }));
       this.tagBox.addEventListener('click', (e) => { const b = e.target.closest('[data-tag]'); if (b) onTag(b.dataset.tag); });
       this.pill.addEventListener('click', (e) => { if (e.target.closest('[data-resume]')) onResumeBackup(); });
+      // たたんだ帯は、ボタン以外のどこをクリックしても開く
+      this.root.addEventListener('click', (e) => {
+        const ctl = e.target.closest('button,input,.menu');
+        if (this.mini && (!ctl || ctl === this.openBtn)) this.expand();
+      });
+      window.addEventListener('scroll', () => this.queueMini(), { passive: true });
+      window.addEventListener('resize', () => this.queueMini(), { passive: true });
+    }
+    queueMini() {
+      if (this.miniQueued) return;
+      this.miniQueued = true;
+      requestAnimationFrame(() => { this.miniQueued = false; this.updateMini(); });
+    }
+    /** 固定表示中に見出しより下までスクロールしたら帯にたたむ。
+     *  クリックで開いたあとは、そこから一定以上スクロールするまで開いたままにする */
+    updateMini() {
+      const y = window.scrollY;
+      const sticky = getComputedStyle(this.root).position === 'sticky';
+      const past = sticky && y > this.masthead.offsetTop + this.masthead.offsetHeight;
+      if (!past) { this.openedAt = null; this.setMini(false); return; }
+      if (this.openedAt !== null) {
+        if (Math.abs(y - this.openedAt) < 200) return;
+        this.openedAt = null;
+      }
+      // 検索欄に入力中・メニューを開いている間はたたまない
+      const a = document.activeElement;
+      if (!this.mini && (!this.menu.hidden || (a && a.matches('input,textarea') && this.root.contains(a)))) return;
+      this.setMini(true);
+    }
+    expand() {
+      this.openedAt = window.scrollY;
+      this.setMini(false);
+    }
+    setMini(on) {
+      if (this.mini === on) return;
+      // たたんで縮んだ分を下の余白で埋め、下に続く内容の位置がずれないようにする
+      const full = on ? this.root.offsetHeight : 0;
+      this.mini = on;
+      this.root.classList.toggle('is-mini', on);
+      this.root.style.marginBottom = on ? Math.max(0, full - this.root.offsetHeight) + 'px' : '';
+      this.openBtn.setAttribute('aria-expanded', String(!on));
     }
     openMenu() {
       this.menu.hidden = false; this.more.setAttribute('aria-expanded', 'true');
@@ -1763,6 +1948,10 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.segs.forEach((b) => { const k = this.keyOf(b); b.setAttribute('aria-pressed', String(ui[k] === b.dataset[k])); });
       this.basisLabel.textContent = ui.layout === 'calendar' ? '表示日付' : '並び替え';
       this.root.classList.toggle('is-sticky', ui.layout === 'list');
+      this.updateMini();
+      // 入力中の欄は書き換えない（「絞り込みを解除」などで外から変わったときだけ合わせる）
+      this.search.disabled = !loaded;
+      if (document.activeElement !== this.search && this.search.value !== ui.q) this.search.value = ui.q;
       this.renderTags(loaded, tags, ui.tag);
 
       this.cmd('export').disabled = !total;
@@ -1981,6 +2170,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.due = $('#f-due'); this.target = $('#f-target'); this.pri = $('#f-pri'); this.warn = $('#f-date-warn');
       this.repeat = $('#f-repeat'); this.weekday = $('#f-weekday');
       this.tagPick = $('#f-tag-pick'); this.tagNew = $('#f-tag-new'); this.tagBox = $('#f-tags');
+      this.subBox = $('#f-subs'); this.subNew = $('#f-sub-new'); this.subAdd = $('#f-sub-add'); this.subCount = $('#f-subs-count');
       this.stamp = $('#f-stamp');
       this.del = $('#f-delete'); this.save = $('#f-save');
       this.sel = []; this.weekdayTouched = false; this.autoDue = false;
@@ -2023,6 +2213,21 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         this.sel = this.sel.filter((n) => n !== b.dataset.tag);
         this.renderTags();
       });
+      const addSub = () => {
+        const title = squash(this.subNew.value); if (!title) return;
+        this.addSubRow({ title, done: false });
+        this.subNew.value = '';
+        this.syncSubs();
+        this.subNew.focus();
+      };
+      this.subAdd.addEventListener('click', addSub);
+      this.subNew.addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.isComposing) { e.preventDefault(); addSub(); } });
+      this.subBox.addEventListener('click', (e) => {
+        const b = e.target.closest('[data-act="unsub"]'); if (!b) return;
+        b.closest('li').remove();
+        this.syncSubs();
+        this.subNew.focus();
+      });
     }
     open({ task, preset, tags }) {
       const t = task || null; const p = preset || {};
@@ -2044,6 +2249,9 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       (tags || []).forEach((n) => this.tagPick.append(new Option(n, n)));
       this.tagNew.value = '';
       this.renderTags();
+      this.subBox.textContent = ''; this.subNew.value = '';
+      (t ? t.subtasks : []).forEach((s) => this.addSubRow(s));
+      this.syncSubs();
       this.err.hidden = true;
       this.del.hidden = !t;
       this.save.textContent = t ? '保存する' : '追加する';
@@ -2064,7 +2272,30 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         priority: this.pri.value,
         repeat: this.repeat.checked ? { freq: 'weekly', weekday: Number(this.weekday.value) } : null,
         tags: Task.cleanTags(this.sel.concat(Task.splitTagText(this.tagNew.value))),
+        // 入力欄に残っている「追加」前の文字も、サブタスクとして入れる
+        subtasks: $$('li', this.subBox).map((li) => ({ id: li.dataset.sid, title: $('input[type="text"]', li).value, done: $('input[type="checkbox"]', li).checked }))
+          .concat({ title: this.subNew.value, done: false }),
       };
+    }
+    /** サブタスク1行（完了のチェック・名前・削除ボタン）。行そのものが入力中の値を持つ */
+    addSubRow(s) {
+      const li = h('li');
+      if (s.id) li.dataset.sid = s.id;
+      const cb = document.createElement('input');
+      cb.type = 'checkbox'; cb.checked = s.done; cb.setAttribute('aria-label', '完了');
+      const tx = document.createElement('input');
+      tx.type = 'text'; tx.className = 'inp'; tx.value = s.title; tx.maxLength = LIMIT.title; tx.setAttribute('aria-label', 'サブタスク名');
+      li.append(cb, tx, iconButton(ICON.del, 'icon-btn del', 'unsub', { label: 'このサブタスクを削除', tip: '削除' }));
+      this.subBox.append(li);
+    }
+    /** サブタスクの件数の表示と、上限に達したときの入力欄の状態を合わせる */
+    syncSubs() {
+      const n = this.subBox.children.length;
+      const full = n >= LIMIT.subtasks;
+      this.subBox.hidden = !n;
+      this.subCount.textContent = n ? `　${n}件` : '';
+      this.subNew.disabled = this.subAdd.disabled = full;
+      this.subNew.placeholder = full ? `サブタスクは${LIMIT.subtasks}件までです` : '例：資料を集める（Enter で追加）';
     }
     addTags(names) { this.sel = Task.cleanTags(this.sel.concat(names)); this.renderTags(); }
     renderTags() {
@@ -2316,18 +2547,19 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     /* --- View の操作をコントローラーの処理へつなぐ --- */
     bindViews() {
       const v = this.v;
-      const card = { onAction: (a, id) => this.taskAction(a, id), onMemo: (id, value) => this.saveMemo(id, value) };
+      const card = { onAction: (a, id, arg) => this.taskAction(a, id, arg), onMemo: (id, value) => this.saveMemo(id, value) };
       v.panel.bind({
         onAdd: () => this.openNew(),
         onCommand: (c) => this.command(c),
         onSet: (patch) => this.ui.set(patch),
         onTag: (name) => this.ui.set({ tag: this.ui.get().tag === name ? '' : name }),
+        onSearch: (text) => this.ui.set({ q: squash(text) }),
         onResumeBackup: () => this.resumeBackup(),
       });
       v.placeholder.bind({
         onAdd: () => this.openNew(),
         onImport: () => this.openImport(),
-        onReset: () => this.ui.set({ status: 'all', pri: '', tag: '' }),
+        onReset: () => this.ui.set({ status: 'all', pri: '', tag: '', q: '' }),
       });
       v.timeline.bind(card);
       v.calendar.bind(Object.assign({
@@ -2461,18 +2693,39 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       if (ui.status !== 'all') parts.push(ui.status === 'open' ? '未完了' : '完了');
       if (ui.pri) parts.push(`優先度 ${PRIORITY[ui.pri].label}`);
       if (ui.tag) parts.push(`タグ「${ui.tag}」`);
+      if (ui.q) parts.push(`検索「${short(ui.q)}」`);
       return parts.length ? `${parts.join('・')} で絞り込んでいます。絞り込みを変えるか、解除してください。` : '絞り込みを変えるか、解除してください。';
     }
 
     /* --- タスクの操作 --- */
-    taskAction(act, id) {
+    taskAction(act, id, arg) {
       if (act === 'toggle') this.toggleDone(id);
+      else if (act === 'sub') this.tasks.toggleSubtask(id, arg);
+      else if (act === 'postpone') this.postpone(id, Number(arg));
       else if (act === 'edit') this.openEdit(id);
       else if (act === 'delete') this.deleteWithUndo([id]);
     }
+    /** 完了・未完了を切り替える。完了にした直後なら「元に戻す」で取り消せる（作った翌週分も消す） */
     toggleDone(id) {
-      const next = this.tasks.toggleDone(id);
-      if (next) this.v.toast.show(`毎週のタスクなので、翌週分（${DateUtil.fmtShort(next.dueDate || next.targetDate)}）を作成しました`);
+      const r = this.tasks.toggleDone(id);
+      if (!r || !r.task.done) return;
+      const { task, next } = r;
+      const msg = next
+        ? `「${short(task.title)}」を完了にし、翌週分（${DateUtil.fmtShort(next.dueDate || next.targetDate)}）を作成しました`
+        : `「${short(task.title)}」を完了にしました`;
+      this.v.toast.show(msg, {
+        action: '元に戻す',
+        onAction: () => { if (this.tasks.undoComplete(task.id, next && next.id)) this.v.toast.show('未完了に戻しました'); },
+      });
+    }
+    /** 日付を先へ送る（表示中の日付の基準の日付を動かす）。直後なら「元に戻す」で取り消せる */
+    postpone(id, days) {
+      const r = this.tasks.postpone(id, this.ui.get().basis, days);
+      if (!r) return;
+      this.v.toast.show(`「${short(r.task.title)}」の${BASIS[r.kind].label}を ${DateUtil.fmtShort(r.date)} にしました`, {
+        action: '元に戻す',
+        onAction: () => { if (this.tasks.undoPostpone(r)) this.v.toast.show('日付を元に戻しました'); },
+      });
     }
     saveMemo(id, value) {
       const t = this.tasks.get(id);
@@ -2540,7 +2793,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     }
     reveal(t) {
       const ui = this.ui.get();
-      const patch = { status: 'all', pri: '', tag: '' };
+      const patch = { status: 'all', pri: '', tag: '', q: '' };
       if (ui.layout === 'calendar') {
         const d = Task.dateOf(t, ui.basis);
         if (d) Object.assign(patch, { selected: d, month: d.slice(0, 7) }); else patch.layout = 'list';
