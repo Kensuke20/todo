@@ -220,6 +220,12 @@ button,input,select,textarea{font:inherit;color:inherit}
 .dc-v{color:var(--ink);font-variant-numeric:tabular-nums}
 .dchip.unset{border-color:transparent;background:transparent;color:var(--ink-3)}
 .dchip.unset .dc-v{color:var(--ink-3)}
+.dwrap{position:relative;display:inline-flex}
+.dshift{position:absolute;left:100%;top:50%;z-index:2;display:flex;gap:2px;padding-left:4px;transform:translateY(-50%);opacity:0;pointer-events:none;transition:opacity .12s}
+.dshift .mini-btn{height:28px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-xs)}
+.dshift .mini-btn:hover{background:var(--wash)}
+.dwrap:hover .dshift,.dshift:has(:focus-visible){opacity:1;pointer-events:auto}
+@media (hover:none){.dwrap{gap:2px}.dshift{position:static;padding-left:0;transform:none;opacity:1;pointer-events:auto}}
 .rel{margin-left:4px;font-size:12px;font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .rel.overdue{color:var(--red)}
 .rel.soon{color:var(--orange)}
@@ -245,7 +251,7 @@ button,input,select,textarea{font:inherit;color:inherit}
 .card-acts{display:flex;align-items:center;gap:2px;opacity:0;transition:opacity .12s}
 .mini-btn{flex:none;height:32px;padding:0 8px;border:0;border-radius:8px;background:transparent;color:var(--ink-3);font-size:12.5px;font-weight:700;white-space:nowrap;cursor:pointer}
 .mini-btn:hover{background:var(--wash);color:var(--ink)}
-.card:hover .card-acts,.card:focus-within .card-acts{opacity:1}
+.card:hover .card-acts,.card-acts:has(:focus-visible){opacity:1}
 @media (hover:none){.card-acts{opacity:1}}
 .card.is-done .card-title{color:var(--ink-3);text-decoration:line-through;text-decoration-color:var(--ink-3)}
 .card.is-done .pri,.card.is-done .tag,.card.is-done .card-dates,.card.is-done .card-extra,.card.is-done .subs{opacity:.6}
@@ -1047,13 +1053,10 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     const fold = (s) => squash(String(s).normalize('NFKC').toLowerCase());
     /** 検索の言葉（空白で区切る）がすべて、タスク名・メモ・タグ・サブタスクのどこかに入っているか。言葉が空なら true */
     /**
-     * 日付を days 日先へ送った写しを作り、{ task, kind, from, date } を返す（kind は動かした日付の種類、from は元の日付）。
-     * 動かすのは日付の基準の日付。無ければもう一方の日付、どちらも無ければ日付の基準の日付を新しく入れる。
-     * 今日より前の日付（と日付なし）は、今日から数える（期限切れを1日送ると明日になる）
+     * kind（'due' 締め切り日 / 'target' 完了目標日）の日付を days 日先へ送った写しを作り、{ task, kind, from, date } を返す（from は元の日付）。
+     * 今日より前の日付（と未設定）は、今日から数える（期限切れを1日送ると明日になる）。もう一方の日付は動かさない
      */
-    function postponed(t, basis, days) {
-      const other = basis === 'due' ? 'target' : 'due';
-      const kind = dateOf(t, basis) || !dateOf(t, other) ? basis : other;
+    function postponed(t, kind, days) {
       const from = dateOf(t, kind), today = DateUtil.today();
       const date = DateUtil.addDays(days, from && from > today ? from : today);
       return { task: patch(t, { [BASIS[kind].field]: date }), kind, from, date };
@@ -1292,10 +1295,10 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       this.put([updated]);
       return true;
     }
-    /** 日付を days 日先へ送る。Task.postponed() の結果を返す */
-    postpone(id, basis, days) {
+    /** kind の日付を days 日先へ送る。Task.postponed() の結果を返す */
+    postpone(id, kind, days) {
       const t = this.get(id); if (!t) return null;
-      const r = Task.postponed(t, basis, days);
+      const r = Task.postponed(t, kind, days);
       this.put([r.task]);
       return r;
     }
@@ -1721,7 +1724,16 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       main.append(head);
 
       const dates = h('div', 'card-dates');
-      dates.append(this.dateChip('due', t.dueDate, t.done), this.dateChip('target', t.targetDate, t.done));
+      ['due', 'target'].forEach((k) => {
+        const chip = this.dateChip(k, t[BASIS[k].field], t.done);
+        if (t.done) { dates.append(chip); return; }
+        // 未完了なら、日付にカーソルを乗せたとき横に先送りのボタンを出す
+        const wrap = h('span', 'dwrap');
+        const shift = h('span', 'dshift');
+        shift.append(this.postpone(t, id(`p1-${k}`), k, 1, '＋1日', '1日'), this.postpone(t, id(`p7-${k}`), k, 7, '＋1週', '1週間'));
+        wrap.append(chip, shift);
+        dates.append(wrap);
+      });
       main.append(dates);
 
       const sp = Task.subProgress(t);
@@ -1748,12 +1760,11 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       });
       return ul;
     },
-    /** 完了の印と、先送り（未完了のときだけ）・編集・削除のボタン */
+    /** 完了の印と、編集・削除のボタン */
     side(t, id) {
       const side = h('div', 'card-side');
       if (t.done) side.append(h('span', 'done-pill', '完了'));
       const acts = h('div', 'card-acts');
-      if (!t.done) acts.append(this.postpone(t, id('p1'), 1, '＋1日', '1日'), this.postpone(t, id('p7'), 7, '＋1週', '1週間'));
       acts.append(
         iconButton(ICON.edit, 'icon-btn', 'edit', { id: id('edit'), label: `「${t.title}」を編集`, tip: '編集' }),
         iconButton(ICON.del, 'icon-btn del', 'delete', { id: id('del'), label: `「${t.title}」を削除`, tip: '削除' }),
@@ -1761,12 +1772,13 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
       side.append(acts);
       return side;
     },
-    /** 日付を先へ送るボタン */
-    postpone(t, id, days, text, span) {
+    /** kind の日付を先へ送るボタン */
+    postpone(t, id, kind, days, text, span) {
       const b = button(text, 'mini-btn', 'postpone');
-      b.id = id; b.dataset.days = String(days);
-      b.setAttribute('aria-label', `「${t.title}」の日付を${span}先へ送る`);
-      b.title = `日付を${span}先へ送る（期限切れのときは今日から数える）`;
+      const label = BASIS[kind].label;
+      b.id = id; b.dataset.arg = `${kind}:${days}`;
+      b.setAttribute('aria-label', `「${t.title}」の${label}を${span}先へ送る`);
+      b.title = `${label}を${span}先へ送る（期限切れ・未設定のときは今日から数える）`;
       return b;
     },
     /** メモ欄（読み上げ用のラベルと一緒に返す） */
@@ -1796,14 +1808,14 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     },
   };
 
-  /** カードの操作（完了・サブタスクの完了・先送り・編集・削除・メモ）を1か所で受け取る。onAction(操作, タスクID, サブタスクIDか先送りの日数) */
+  /** カードの操作（完了・サブタスクの完了・先送り・編集・削除・メモ）を1か所で受け取る。onAction(操作, タスクID, サブタスクIDか先送りの「日付の種類:日数」) */
   function bindCardEvents(root, { onAction, onMemo }) {
     const memoOf = (e) => (e.target.matches && e.target.matches('textarea.memo') ? e.target : null);
     root.addEventListener('click', (e) => {
       const b = e.target.closest('[data-act]');
       if (!b || !root.contains(b) || ['toggle', 'sub', 'memo'].includes(b.dataset.act)) return;
       const host = b.closest('[data-id]');
-      if (host) onAction(b.dataset.act, host.dataset.id, b.dataset.days);
+      if (host) onAction(b.dataset.act, host.dataset.id, b.dataset.arg);
     });
     root.addEventListener('change', (e) => {
       const cb = e.target;
@@ -2701,7 +2713,7 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
     taskAction(act, id, arg) {
       if (act === 'toggle') this.toggleDone(id);
       else if (act === 'sub') this.tasks.toggleSubtask(id, arg);
-      else if (act === 'postpone') this.postpone(id, Number(arg));
+      else if (act === 'postpone') { const [kind, days] = String(arg).split(':'); if (BASIS[kind]) this.postpone(id, kind, Number(days)); }
       else if (act === 'edit') this.openEdit(id);
       else if (act === 'delete') this.deleteWithUndo([id]);
     }
@@ -2718,9 +2730,9 @@ fieldset.field > legend{margin-bottom:6px;padding:0;font-size:13px;font-weight:7
         onAction: () => { if (this.tasks.undoComplete(task.id, next && next.id)) this.v.toast.show('未完了に戻しました'); },
       });
     }
-    /** 日付を先へ送る（表示中の日付の基準の日付を動かす）。直後なら「元に戻す」で取り消せる */
-    postpone(id, days) {
-      const r = this.tasks.postpone(id, this.ui.get().basis, days);
+    /** kind（締め切り日／完了目標日）の日付を先へ送る。直後なら「元に戻す」で取り消せる */
+    postpone(id, kind, days) {
+      const r = this.tasks.postpone(id, kind, days);
       if (!r) return;
       this.v.toast.show(`「${short(r.task.title)}」の${BASIS[r.kind].label}を ${DateUtil.fmtShort(r.date)} にしました`, {
         action: '元に戻す',
