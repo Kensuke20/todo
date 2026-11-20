@@ -220,12 +220,14 @@ button,input,select,textarea{font:inherit;color:inherit}
 .dc-v{color:var(--ink);font-variant-numeric:tabular-nums}
 .dchip.unset{border-color:transparent;background:transparent;color:var(--ink-3)}
 .dchip.unset .dc-v{color:var(--ink-3)}
+/* 先送りのボタンは、カーソルを乗せた日付の真下に小さなメニューとして出す（隣の日付に重ねない・日付どうしの間を空けない）。
+   上の余白はカーソルが日付からボタンへ移る間に消えないための通り道 */
 .dwrap{position:relative;display:inline-flex}
-.dshift{position:absolute;left:100%;top:50%;z-index:2;display:flex;gap:2px;padding-left:4px;transform:translateY(-50%);opacity:0;pointer-events:none;transition:opacity .12s}
-.dshift .mini-btn{height:28px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow-xs)}
+.dshift{position:absolute;top:100%;left:0;z-index:3;display:flex;gap:2px;padding:4px 0 0;opacity:0;pointer-events:none;transition:opacity .12s}
+.dshift .mini-btn{height:28px;padding:0 9px;border:1px solid var(--line);background:var(--surface);box-shadow:var(--shadow)}
 .dshift .mini-btn:hover{background:var(--wash)}
 .dwrap:hover .dshift,.dshift:has(:focus-visible){opacity:1;pointer-events:auto}
-@media (hover:none){.dwrap{gap:2px}.dshift{position:static;padding-left:0;transform:none;opacity:1;pointer-events:auto}}
+@media (hover:none){.dwrap{gap:2px}.dshift{position:static;padding:0;opacity:1;pointer-events:auto}.dshift .mini-btn{box-shadow:none}}
 .rel{margin-left:4px;font-size:12px;font-weight:700;color:var(--ink-3);font-variant-numeric:tabular-nums}
 .rel.overdue{color:var(--red)}
 .rel.soon{color:var(--orange)}
